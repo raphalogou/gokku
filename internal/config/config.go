@@ -32,8 +32,19 @@ const (
 )
 
 // Load parses args (without the program and subcommand names) on top of the environment.
-// lookupEnv is os.LookupEnv in production and a map lookup in tests.
+// lookupEnv is os.LookupEnv in production and a map lookup in tests. Positional arguments
+// are an error.
 func Load(args []string, lookupEnv func(string) (string, bool)) (Config, error) {
+	cfg, rest, err := LoadArgs(args, lookupEnv)
+	if err == nil && len(rest) > 0 {
+		err = fmt.Errorf("unexpected arguments: %s", strings.Join(rest, " "))
+	}
+	return cfg, err
+}
+
+// LoadArgs is Load for commands that take positional arguments after the flags, which it
+// returns.
+func LoadArgs(args []string, lookupEnv func(string) (string, bool)) (Config, []string, error) {
 	env := func(key, def string) string {
 		if v, ok := lookupEnv(key); ok && v != "" {
 			return v
@@ -41,7 +52,7 @@ func Load(args []string, lookupEnv func(string) (string, bool)) (Config, error) 
 		return def
 	}
 
-	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
+	fs := flag.NewFlagSet("gokku", flag.ContinueOnError)
 	listen := fs.String("listen", env("GOKKU_LISTEN", "127.0.0.1:8080"), "listen address")
 	dataDir := fs.String("data-dir", env("GOKKU_DATA_DIR", "/var/lib/gokku"), "database and secret key directory")
 	dokkuBin := fs.String("dokku-bin", env("GOKKU_DOKKU_BIN", "/usr/bin/dokku"), "path of the dokku binary")
@@ -51,10 +62,7 @@ func Load(args []string, lookupEnv func(string) (string, bool)) (Config, error) 
 	proxies := fs.String("trusted-proxies", env("GOKKU_TRUSTED_PROXIES", ""), "comma-separated CIDRs allowed to set X-Forwarded-*")
 	logLevel := fs.String("log-level", env("GOKKU_LOG_LEVEL", "info"), "log level: debug, info, warn, error")
 	if err := fs.Parse(args); err != nil {
-		return Config{}, err
-	}
-	if fs.NArg() > 0 {
-		return Config{}, fmt.Errorf("unexpected arguments: %s", strings.Join(fs.Args(), " "))
+		return Config{}, nil, err
 	}
 
 	cfg := Config{
@@ -85,12 +93,17 @@ func Load(args []string, lookupEnv func(string) (string, bool)) (Config, error) 
 		errs = append(errs, fmt.Errorf("GOKKU_LOG_LEVEL: %q is not a log level", *logLevel))
 	}
 
-	return cfg, errors.Join(errs...)
+	return cfg, fs.Args(), errors.Join(errs...)
 }
 
 // FromOS loads the configuration from the process environment.
 func FromOS(args []string) (Config, error) {
 	return Load(args, os.LookupEnv)
+}
+
+// FromOSArgs is FromOS for commands with positional arguments.
+func FromOSArgs(args []string) (Config, []string, error) {
+	return LoadArgs(args, os.LookupEnv)
 }
 
 func parsePrefixes(s string) ([]netip.Prefix, error) {

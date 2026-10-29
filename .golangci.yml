@@ -8,6 +8,12 @@ linters:
     - errorlint
     - misspell
     - nolintlint
+  exclusions:
+    rules:
+      # Tests are full of fixture passwords and tokens.
+      - path: _test\.go
+        linters: [gosec]
+        text: G101
 
 formatters:
   enable:

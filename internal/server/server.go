@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"net/netip"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,6 +19,11 @@ type Options struct {
 	Version string
 	// Static is the built SPA, rooted at the directory holding index.html.
 	Static fs.FS
+	// API serves /api/v1. Nil answers every API request with 404, for tests of the shell.
+	API http.Handler
+	// Listen and TrustedProxies drive client address and scheme detection (SEC-3a).
+	Listen         string
+	TrustedProxies []netip.Prefix
 }
 
 // New returns the root handler. Order: RequestID, Recover, Logger, SecurityHeaders (DESIGN.md, 3.1).
@@ -32,19 +38,19 @@ func New(opts Options) (http.Handler, error) {
 	r.Use(recoverer(opts.Logger))
 	r.Use(requestLogger(opts.Logger))
 	r.Use(securityHeaders(spa.csp))
+	r.Use(newProxyAware(opts.TrustedProxies, opts.Listen, opts.Logger).middleware)
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "version": opts.Version})
 	})
 
-	r.Route("/api/v1", func(r chi.Router) {
-		r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
+	if opts.API != nil {
+		r.Mount("/api/v1", opts.API)
+	} else {
+		r.Handle("/api/v1/*", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			writeError(w, http.StatusNotFound, "not_found", "no such endpoint")
-		})
-		r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
-			writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
-		})
-	})
+		}))
+	}
 
 	r.NotFound(spa.ServeHTTP)
 	r.MethodNotAllowed(spa.ServeHTTP)
