@@ -65,6 +65,25 @@ tasks:
     cmds:
       - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN}} ./cmd/gokku
 
+  gen:
+    desc: Regenerate Go and TypeScript code from api/openapi.yaml
+    cmds:
+      - go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml
+      - cd web && npx orval
+
+  gen:check:
+    desc: Fail if generated code is out of date with api/openapi.yaml
+    vars:
+      HASH: find internal/api/types.gen.go web/src/lib/api/gen -type f | sort | xargs sha256sum | sha256sum
+    cmds:
+      - cmd: |
+          before="$({{.HASH}})"
+          go tool task gen >/dev/null
+          if [ "$before" != "$({{.HASH}})" ]; then
+            echo "Generated code was out of date with api/openapi.yaml. It is regenerated now; review and commit it."
+            exit 1
+          fi
+
   test:
     desc: Go tests and web unit tests
     cmds:
@@ -92,8 +111,9 @@ tasks:
       - npm --prefix web run format
 
   check:
-    desc: Everything CI runs
+    desc: "Everything CI runs: gen (fails on a diff), lint, test"
     cmds:
+      - task: gen:check
       - task: lint
       - task: test
 

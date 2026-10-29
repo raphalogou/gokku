@@ -1,0 +1,10 @@
+# Go models only. Routes are registered by hand through the authorization route helper
+# (DESIGN.md, 3.1), and a contract test checks that they match this spec.
+package: api
+output: internal/api/types.gen.go
+generate:
+  models: true
+output-options:
+  skip-prune: true
+compatibility:
+  always-prefix-enum-values: true

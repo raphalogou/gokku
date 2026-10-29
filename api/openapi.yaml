@@ -1,0 +1,506 @@
+openapi: 3.0.3
+info:
+  title: Gokku API
+  version: 0.1.0
+  description: |
+    REST API of Gokku, a web GUI for Dokku. This file is the contract: Go types and the
+    TypeScript client are generated from it (`task gen`). Every operation must be
+    registered in the Go router, and every route must be described here; a test enforces both.
+
+    Authentication is a session cookie (`gokku_session`) or `Authorization: Bearer gk_...`.
+    Unsafe methods with a cookie must be same-origin (AUTH-5).
+servers:
+  - url: /api/v1
+
+tags:
+  - name: setup
+  - name: auth
+  - name: me
+  - name: users
+  - name: tokens
+
+paths:
+  /setup/status:
+    get:
+      operationId: getSetupStatus
+      tags: [setup]
+      security: []
+      summary: Whether the first admin still has to be created (AUTH-1)
+      responses:
+        "200":
+          description: Setup status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SetupStatus" }
+
+  /setup:
+    post:
+      operationId: completeSetup
+      tags: [setup]
+      security: []
+      summary: Create the first admin and sign in (AUTH-1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Credentials" }
+      responses:
+        "201":
+          description: First admin created; the session cookie is set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Credentials" }
+      responses:
+        "200":
+          description: Signed in; the session cookie is set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      security: []
+      responses:
+        "204": { description: Signed out; the session cookie is cleared }
+
+  /auth/invites/{token}:
+    get:
+      operationId: getInvite
+      tags: [auth]
+      security: []
+      summary: Look up a pending invite to show the username (AUTH-7)
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The invite is valid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invite" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /auth/accept-invite:
+    post:
+      operationId: acceptInvite
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AcceptInviteRequest" }
+      responses:
+        "200":
+          description: Password set and signed in; the session cookie is set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /me:
+    get:
+      operationId: getMe
+      tags: [me]
+      responses:
+        "200":
+          description: The signed-in user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "401": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateMe
+      tags: [me]
+      summary: Change own username or theme (USR-1, USR-4)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateMeRequest" }
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /me/password:
+    post:
+      operationId: changePassword
+      tags: [me]
+      summary: Change own password; revokes all other sessions (USR-2)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangePasswordRequest" }
+      responses:
+        "204": { description: Password changed }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /me/sessions:
+    get:
+      operationId: listMySessions
+      tags: [me]
+      responses:
+        "200":
+          description: Active sessions of the signed-in user (USR-3)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Session" }
+
+  /me/sessions/{id}:
+    delete:
+      operationId: revokeMySession
+      tags: [me]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Session revoked }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      responses:
+        "200":
+          description: All users (USR-5)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/User" }
+    post:
+      operationId: inviteUser
+      tags: [users]
+      summary: Create an invited user and return a one-time invite link (AUTH-7)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InviteUserRequest" }
+      responses:
+        "201":
+          description: User invited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InviteCreated" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /users/{id}:
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Change role, or disable and enable (USR-5)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateUserRequest" }
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: "User, sessions and tokens deleted" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /users/{id}/invite:
+    post:
+      operationId: resetInvite
+      tags: [users]
+      summary: Issue a new invite link for an invited user (USR-5)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: New invite link
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InviteCreated" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /tokens:
+    get:
+      operationId: listTokens
+      tags: [tokens]
+      responses:
+        "200":
+          description: API tokens that are not revoked (USR-6)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Token" }
+    post:
+      operationId: createToken
+      tags: [tokens]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTokenRequest" }
+      responses:
+        "201":
+          description: Token created; the secret is shown only in this response (AUTH-6)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenCreated" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /tokens/{id}:
+    delete:
+      operationId: revokeToken
+      tags: [tokens]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Token revoked }
+        "404": { $ref: "#/components/responses/Error" }
+
+security:
+  - session: []
+  - bearer: []
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: gokku_session
+    bearer:
+      type: http
+      scheme: bearer
+
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { $ref: "#/components/schemas/ErrorCode" }
+            message: { type: string }
+            fields:
+              type: object
+              additionalProperties: { type: string }
+              description: Per-field validation messages, keyed by request field name
+
+    ErrorCode:
+      type: string
+      enum:
+        - validation_failed
+        - invalid_credentials
+        - rate_limited
+        - setup_complete
+        - unauthorized
+        - forbidden
+        - csrf_failed
+        - not_found
+        - method_not_allowed
+        - last_admin
+        - username_taken
+        - token_name_taken
+        - invite_invalid
+        - not_invited
+        - wrong_password
+        - cannot_revoke_current
+        - internal
+
+    Role:
+      type: string
+      enum: [viewer, operator, admin]
+
+    UserStatus:
+      type: string
+      enum: [active, invited, disabled]
+
+    Theme:
+      type: string
+      enum: [system, light, dark]
+
+    Username:
+      type: string
+      minLength: 3
+      maxLength: 32
+      pattern: "^[a-z0-9][a-z0-9_-]{2,31}$"
+      description: Lowercase letters, digits, dash and underscore; starts with a letter or digit (USR-1)
+
+    Password:
+      type: string
+      maxLength: 1024
+      description: Minimum length is SetupStatus.min_password_length (AUTH-2)
+
+    SetupStatus:
+      type: object
+      required: [setup_required, min_password_length]
+      properties:
+        setup_required: { type: boolean }
+        min_password_length: { type: integer }
+
+    Credentials:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, maxLength: 64 }
+        password: { $ref: "#/components/schemas/Password" }
+
+    Me:
+      type: object
+      required: [id, username, role, theme]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        theme: { $ref: "#/components/schemas/Theme" }
+
+    UpdateMeRequest:
+      type: object
+      properties:
+        username: { $ref: "#/components/schemas/Username" }
+        theme: { $ref: "#/components/schemas/Theme" }
+
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password: { $ref: "#/components/schemas/Password" }
+        new_password: { $ref: "#/components/schemas/Password" }
+
+    Session:
+      type: object
+      required: [id, created_at, last_seen_at, expires_at, user_agent, ip, current]
+      properties:
+        id: { type: string }
+        created_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        user_agent: { type: string }
+        ip: { type: string }
+        current: { type: boolean, description: True for the session making the request }
+
+    Invite:
+      type: object
+      required: [username, expires_at]
+      properties:
+        username: { type: string }
+        expires_at: { type: string, format: date-time }
+
+    AcceptInviteRequest:
+      type: object
+      required: [token, password]
+      properties:
+        token: { type: string }
+        password: { $ref: "#/components/schemas/Password" }
+
+    User:
+      type: object
+      required: [id, username, role, status, created_at]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        status: { $ref: "#/components/schemas/UserStatus" }
+        created_at: { type: string, format: date-time }
+        last_active_at: { type: string, format: date-time, nullable: true }
+        invite_expires_at: { type: string, format: date-time, nullable: true }
+
+    InviteUserRequest:
+      type: object
+      required: [username, role]
+      properties:
+        username: { $ref: "#/components/schemas/Username" }
+        role: { $ref: "#/components/schemas/Role" }
+
+    InviteCreated:
+      type: object
+      required: [user, invite_url, expires_at]
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        invite_url: { type: string, description: "One-time link, shown only in this response" }
+        expires_at: { type: string, format: date-time }
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+        status:
+          type: string
+          enum: [active, disabled]
+          description: Disable or re-enable a user. Invited users become active by accepting their invite.
+
+    Token:
+      type: object
+      required: [id, name, prefix, role, owner, created_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        prefix: { type: string, description: "First characters of the token, for recognition" }
+        role: { $ref: "#/components/schemas/Role" }
+        owner: { type: string, description: Username of the owner }
+        created_at: { type: string, format: date-time }
+        last_used_at: { type: string, format: date-time, nullable: true }
+
+    CreateTokenRequest:
+      type: object
+      required: [name, role]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 64 }
+        role: { $ref: "#/components/schemas/Role" }
+
+    TokenCreated:
+      type: object
+      required: [token, secret]
+      properties:
+        token: { $ref: "#/components/schemas/Token" }
+        secret: { type: string, description: "The full token (gk_...). Shown once." }
