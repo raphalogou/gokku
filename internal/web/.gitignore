@@ -1,0 +1,3 @@
+# Filled by `task build`. Only the placeholder is committed.
+/dist/*
+!/dist/.gitkeep

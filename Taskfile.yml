@@ -1,0 +1,111 @@
+# Run `task` (or `go tool task` if Task is not installed) to list every task.
+version: "3"
+
+vars:
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+  BIN: bin/gokku
+
+tasks:
+  default:
+    silent: true
+    cmds:
+      - task --list
+
+  setup:
+    desc: Install Go and web dependencies and the Playwright browser
+    cmds:
+      - go mod download
+      - npm --prefix web ci --no-fund --no-audit
+      - cd web && npx playwright install chromium
+
+  dev:
+    desc: Run the Go server and Vite together, with GOKKU_RUNNER=fake
+    deps: [dev:api, dev:web]
+
+  dev:api:
+    internal: true
+    env:
+      GOKKU_RUNNER: fake
+      GOKKU_LOG_LEVEL: debug
+    cmds:
+      - go run ./cmd/gokku serve
+
+  dev:web:
+    internal: true
+    dir: web
+    cmds:
+      - npm run dev
+
+  web:build:
+    desc: Build the web app into web/build/client
+    dir: web
+    sources:
+      - src/**/*
+      - package-lock.json
+      - "*.config.ts"
+      - tsconfig.json
+    generates:
+      - build/client/index.html
+    cmds:
+      - npm run build
+
+  web:embed:
+    internal: true
+    deps: [web:build]
+    cmds:
+      - find internal/web/dist -mindepth 1 ! -name .gitkeep -delete
+      - cp -R web/build/client/. internal/web/dist/
+
+  build:
+    desc: Build the web app, then the Go binary with the SPA embedded
+    deps: [web:embed]
+    env:
+      CGO_ENABLED: "0"
+    cmds:
+      - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN}} ./cmd/gokku
+
+  test:
+    desc: Go tests and web unit tests
+    cmds:
+      - go test ./...
+      - npm --prefix web test
+
+  e2e:
+    desc: Playwright tests against the built binary with the fake runner
+    deps: [build]
+    dir: web
+    cmds:
+      - npm run e2e
+
+  lint:
+    desc: golangci-lint, Biome (lint and format), tsc --noEmit
+    cmds:
+      - go tool golangci-lint run ./...
+      - npm --prefix web run check
+      - npm --prefix web run typecheck
+
+  fmt:
+    desc: Format Go and web code in place
+    cmds:
+      - go tool golangci-lint fmt ./...
+      - npm --prefix web run format
+
+  check:
+    desc: Everything CI runs
+    cmds:
+      - task: lint
+      - task: test
+
+  migrate:new:
+    desc: "Create the next numbered goose migration: task migrate:new NAME=add_thing"
+    requires:
+      vars: [NAME]
+    cmds:
+      - go tool goose -dir migrations -s create {{.NAME}} sql
+
+  clean:
+    desc: Remove build output
+    cmds:
+      - rm -rf bin web/build
+      - find internal/web/dist -mindepth 1 ! -name .gitkeep -delete

@@ -1,0 +1,55 @@
+/* Design tokens (DESIGN.md, section 6). Only values change between themes. */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5f6f3;
+  --surface: #ffffff;
+  --subtle: #f5f6f3;
+  --line: #e3e6e0;
+  --ink: #17201b;
+  --muted: #55605a;
+  --input-border: #cbd1c8;
+  --chip: #eef0ec;
+  --nav-active: #e6f1ec;
+  --code-bg: #f0f2ee;
+  --add-row-bg: #fbfbfa;
+  --accent: #1f6f5b;
+  --on-accent: #ffffff;
+  --ok: #14663b;
+
+  --running-bg: #e1f2e8;
+  --running-fg: #14663b;
+  --stopped-bg: #eceeea;
+  --stopped-fg: #47514b;
+  --deploying-bg: #fbebc8;
+  --deploying-fg: #744500;
+  --failed-bg: #fbe2df;
+  --failed-fg: #9f2018;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1512;
+  --surface: #171e1a;
+  --subtle: #1d2520;
+  --line: #2a332d;
+  --ink: #e8ede9;
+  --muted: #9aa69f;
+  --input-border: #3a453e;
+  --chip: #232c26;
+  --nav-active: #1e2f28;
+  --code-bg: #0c110e;
+  --add-row-bg: #1a221d;
+  --accent: #4cc9a0;
+  --on-accent: #06130e;
+  --ok: #7be0a8;
+
+  --running-bg: #17382a;
+  --running-fg: #7be0a8;
+  --stopped-bg: #28302b;
+  --stopped-fg: #b7c2bb;
+  --deploying-bg: #3d3114;
+  --deploying-fg: #f2c867;
+  --failed-bg: #43201c;
+  --failed-fg: #ff9b90;
+}

@@ -1,0 +1,29 @@
+# Gokku behind the nginx that Dokku already runs (Dokku does not manage this file).
+#
+# 1. Save as /etc/nginx/conf.d/gokku.conf and replace the server_name.
+# 2. Set GOKKU_TRUSTED_PROXIES=127.0.0.1/32 in /etc/gokku/gokku.env and restart Gokku,
+#    so Gokku trusts X-Forwarded-Proto and X-Forwarded-For from this proxy.
+# 3. Check and reload:  sudo nginx -t && sudo systemctl reload nginx
+# 4. Add TLS (Dokku's Let's Encrypt plugin only covers Dokku apps):
+#    sudo certbot --nginx -d gokku.example.com
+#
+# Streams (SSE) send a heartbeat every 15 seconds and the response header
+# X-Accel-Buffering: no, so no buffering or timeout tuning is needed here.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name gokku.example.com;
+
+    client_max_body_size 1m;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
