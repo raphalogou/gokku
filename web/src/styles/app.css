@@ -13,14 +13,37 @@
   --color-chip: var(--chip);
   --color-nav-active: var(--nav-active);
   --color-code-bg: var(--code-bg);
+  --color-add-row-bg: var(--add-row-bg);
   --color-accent: var(--accent);
   --color-on-accent: var(--on-accent);
   --color-ok: var(--ok);
+
+  --color-running-bg: var(--running-bg);
+  --color-running-fg: var(--running-fg);
+  --color-stopped-bg: var(--stopped-bg);
+  --color-stopped-fg: var(--stopped-fg);
+  --color-deploying-bg: var(--deploying-bg);
+  --color-deploying-fg: var(--deploying-fg);
+  --color-failed-bg: var(--failed-bg);
+  --color-failed-fg: var(--failed-fg);
   --color-failed: var(--failed-fg);
 
-  /* Hanken Grotesk and JetBrains Mono are embedded as woff2 in M1 (NFR-7). */
+  /* shadcn/ui variable names, so generated components pick up the tokens (DESIGN.md, 6). */
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-border: var(--line);
+  --color-input: var(--input-border);
+  --color-muted-foreground: var(--muted);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-destructive: var(--failed-fg);
+
   --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Below 900 px the sidebar becomes a top bar and bottom tab bar (DESIGN.md, 7). */
+  --breakpoint-nav: 900px;
 }
 
 html {
@@ -33,4 +56,12 @@ html {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Base UI injects this rule in a <style> element, which the CSP blocks; see root.tsx. */
+.base-ui-disable-scrollbar {
+  scrollbar-width: none;
+}
+.base-ui-disable-scrollbar::-webkit-scrollbar {
+  display: none;
 }

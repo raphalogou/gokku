@@ -43,3 +43,19 @@ One entry per decision: date, decision, reason, alternatives.
 - **Decision:** migrations run while holding `flock` on `<data dir>/gokku.lock` (`NFR-3`).
 - **Reason:** goose has lockers for Postgres and MySQL only. A file lock serializes `gokku serve` and
   `gokku admin` commands on the same data directory.
+
+## 2026-10-29: Semantic tables instead of a CSS grid DataTable
+
+- **Decision:** `DataTable` renders `<table>` elements, not a grid of `div`s with ARIA roles.
+- **Reason:** native tables give screen readers row and column semantics for free (`NFR-4`), and Biome's
+  accessibility rules flag ARIA-role tables. Rows keep the 60 px minimum and scroll inside their card.
+- **Alternatives:** the grid layout from DESIGN.md 5.4 with `role="table"`.
+
+## 2026-10-29: The strict CSP stays strict for the web app
+
+- **Decision:** Vite never inlines assets (`build.assetsInlineLimit: 0`), and Base UI runs inside
+  `CSPProvider disableStyleElements`, with the one rule it would inject (`.base-ui-disable-scrollbar`) in
+  `app.css`.
+- **Reason:** `SEC-6` allows fonts, scripts and styles from `'self'` only. Inlined `data:` fonts and injected
+  `<style>` elements were blocked; the e2e tests fail on any CSP violation in the console.
+- **Alternatives:** add `data:` to `font-src` and `'unsafe-inline'` to `style-src`.

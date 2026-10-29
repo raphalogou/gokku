@@ -3,3 +3,4 @@ build/
 .react-router/
 test-results/
 playwright-report/
+e2e/.data/

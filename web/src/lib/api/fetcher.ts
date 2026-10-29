@@ -6,7 +6,12 @@ export class ApiError extends Error {
   readonly code: ErrorCode | "network";
   readonly fields: Record<string, string>;
 
-  constructor(status: number, code: ErrorCode | "network", message: string, fields: Record<string, string> = {}) {
+  constructor(
+    status: number,
+    code: ErrorCode | "network",
+    message: string,
+    fields: Record<string, string> = {},
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -18,8 +23,8 @@ export class ApiError extends Error {
 type ErrorBody = { error?: { code?: ErrorCode; message?: string; fields?: Record<string, string> } };
 
 /** Called when any request comes back 401, so the shell can send the user to sign in. */
-let onUnauthorized: (() => void) | undefined;
-export function setUnauthorizedHandler(fn: (() => void) | undefined) {
+let onUnauthorized: (() => void | Promise<void>) | undefined;
+export function setUnauthorizedHandler(fn: (() => void | Promise<void>) | undefined) {
   onUnauthorized = fn;
 }
 
@@ -37,7 +42,7 @@ export async function apiFetch<T>(url: string, init: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const err = (body as ErrorBody | undefined)?.error;
-    if (res.status === 401) onUnauthorized?.();
+    if (res.status === 401) void onUnauthorized?.();
     throw new ApiError(res.status, err?.code ?? "internal", err?.message ?? res.statusText, err?.fields);
   }
   return body as T;

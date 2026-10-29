@@ -8,6 +8,8 @@ const api = process.env.GOKKU_API_URL ?? "http://127.0.0.1:8080";
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter()],
   resolve: { tsconfigPaths: true },
+  // Never inline assets as data: URIs. The CSP allows fonts and scripts from 'self' only (SEC-6).
+  build: { assetsInlineLimit: 0 },
   server: {
     proxy: {
       "/api": { target: api, changeOrigin: false },

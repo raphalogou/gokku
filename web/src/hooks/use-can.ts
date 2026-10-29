@@ -1,0 +1,20 @@
+import { useQuery } from "@tanstack/react-query";
+import type { Role } from "~/lib/api/gen/model";
+import { meQuery } from "~/lib/queries";
+
+// The minimum roles of the actions the UI checks, mirroring internal/authz/table.go.
+// This only hides controls; the server enforces every permission (PERM-2).
+const minRole = {
+  "user.manage": "admin",
+  "token.manage": "admin",
+  "settings.write": "admin",
+} as const satisfies Record<string, Role>;
+
+const rank: Record<Role, number> = { viewer: 1, operator: 2, admin: 3 };
+
+export type UIAction = keyof typeof minRole;
+
+export function useCan(action: UIAction): boolean {
+  const { data: me } = useQuery(meQuery());
+  return !!me && rank[me.role] >= rank[minRole[action]];
+}
