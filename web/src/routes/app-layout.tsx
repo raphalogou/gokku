@@ -10,9 +10,11 @@ import {
   useNavigate,
   useRouteError,
 } from "react-router";
+import { ServerProblems } from "~/components/app/server-status";
 import { Shell } from "~/components/app/shell";
 import { EmptyState } from "~/components/app/states";
 import { buttonVariants } from "~/components/ui/button";
+import { useServerEvents } from "~/hooks/use-server-events";
 import { useFollowSystemTheme } from "~/hooks/use-theme";
 import { ApiError, setUnauthorizedHandler } from "~/lib/api/fetcher";
 import { meQuery, setupStatusQuery } from "~/lib/queries";
@@ -59,8 +61,11 @@ export default function AppLayout() {
     return () => setUnauthorizedHandler(undefined);
   }, [qc, navigate, location.pathname, location.search]);
 
+  const { connected } = useServerEvents();
+
   return (
     <Shell me={me}>
+      <ServerProblems eventsConnected={connected} />
       <Outlet />
     </Shell>
   );

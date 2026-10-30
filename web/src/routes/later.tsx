@@ -6,10 +6,6 @@ import { EmptyState } from "~/components/app/states";
 import { strings } from "~/lib/strings";
 
 const titles: Record<string, string> = {
-  projects: strings.nav.projects,
-  apps: strings.nav.apps,
-  services: strings.nav.services,
-  plugins: strings.nav.plugins,
   activity: strings.nav.activity,
   settings: strings.account.settings,
 };

@@ -7,7 +7,6 @@ import {
   LogOut,
   type LucideIcon,
   Puzzle,
-  Server,
   Settings,
   UserRound,
   Users,
@@ -22,6 +21,7 @@ import { cn } from "~/lib/utils";
 import { Dialog } from "../ui/dialog";
 import { AccountMenu, Avatar } from "./account-menu";
 import { Brand } from "./brand";
+import { ServerChip } from "./server-status";
 import { ThemeSwitcher } from "./theme-switcher";
 
 type NavItem = { to: string; label: string; icon: LucideIcon; adminOnly?: boolean };
@@ -60,11 +60,7 @@ export function Shell({ me, children }: { me: Me; children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-auto flex flex-col gap-3">
-          <div className="flex items-center gap-2 rounded-lg bg-chip px-3 py-2 text-[13px]">
-            <Server className="size-4 text-muted" aria-hidden />
-            <span className="text-muted">{strings.nav.server}</span>
-            <span className="ml-auto truncate font-mono">{location.hostname}</span>
-          </div>
+          <ServerChip />
           <AccountMenu me={me} />
         </div>
       </aside>

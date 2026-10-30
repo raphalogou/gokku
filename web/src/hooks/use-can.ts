@@ -8,6 +8,9 @@ const minRole = {
   "user.manage": "admin",
   "token.manage": "admin",
   "settings.write": "admin",
+  "server.rescan": "admin",
+  "project.create": "admin",
+  "project.members.write": "admin",
 } as const satisfies Record<string, Role>;
 
 const rank: Record<Role, number> = { viewer: 1, operator: 2, admin: 3 };
