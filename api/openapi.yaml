@@ -18,6 +18,10 @@ tags:
   - name: me
   - name: users
   - name: tokens
+  - name: server
+  - name: projects
+  - name: apps
+  - name: services
 
 paths:
   /setup/status:
@@ -299,6 +303,219 @@ paths:
         "204": { description: Token revoked }
         "404": { $ref: "#/components/responses/Error" }
 
+  /server:
+    get:
+      operationId: getServer
+      tags: [server]
+      summary: Server name, Dokku version, plugins and reachability (SRV-1)
+      responses:
+        "200":
+          description: Server information from the snapshot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServerInfo" }
+
+  /server/rescan:
+    post:
+      operationId: rescanServer
+      tags: [server]
+      summary: Re-run the capability probe and refresh the snapshot (PLG-2)
+      responses:
+        "200":
+          description: Server information after the rescan, which may report Dokku as unreachable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServerInfo" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /plugins:
+    get:
+      operationId: listPlugins
+      tags: [server]
+      summary: Installed plugins that Gokku uses and recognised plugins that are not installed (PLG-1)
+      responses:
+        "200":
+          description: Plugins
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PluginList" }
+
+  /events:
+    get:
+      operationId: streamEvents
+      tags: [server]
+      summary: Server-sent events that tell the client which data changed (EVT-1)
+      description: |
+        Each message has an `event` name (app.updated, app.removed, service.updated,
+        project.updated, job.updated, server.status) and JSON `data` naming the object.
+        A heartbeat comment is sent every 15 seconds (EVT-3).
+      responses:
+        "200":
+          description: An open event stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      responses:
+        "200":
+          description: Every project with its apps and services
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProjectSummary" }
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a project (PRJ-1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateProjectRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectDetail" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /projects/{slug}:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Project overview (PRJ-3)
+      responses:
+        "200":
+          description: The project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectDetail" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Change the name or description; the slug is immutable (PRJ-1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateProjectRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectDetail" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: "Delete the project; its apps and services become unassigned (PRJ-4)"
+      parameters:
+        - { name: confirm, in: query, required: true, schema: { type: string }, description: Must equal the slug }
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /projects/{slug}/apps/{app}:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+      - { name: app, in: path, required: true, schema: { type: string } }
+    put:
+      operationId: addProjectApp
+      tags: [projects]
+      summary: "Add an app to the project, moving it out of any other project (PRJ-2)"
+      responses:
+        "204": { description: The app is in the project }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: removeProjectApp
+      tags: [projects]
+      summary: Release an app from the project (PRJ-2)
+      responses:
+        "204": { description: The app is unassigned }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /projects/{slug}/services/{type}/{name}:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+      - { name: type, in: path, required: true, schema: { type: string } }
+      - { name: name, in: path, required: true, schema: { type: string } }
+    put:
+      operationId: addProjectService
+      tags: [projects]
+      summary: "Add a service to the project, moving it out of any other project (PRJ-2)"
+      responses:
+        "204": { description: The service is in the project }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: removeProjectService
+      tags: [projects]
+      summary: Release a service from the project (PRJ-2)
+      responses:
+        "204": { description: The service is unassigned }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /apps:
+    get:
+      operationId: listApps
+      tags: [apps]
+      summary: Every app with status, project, domains, last deploy and linked services (APP-1)
+      responses:
+        "200":
+          description: Apps from the snapshot
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AppSummary" }
+
+  /apps/{name}:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getApp
+      tags: [apps]
+      responses:
+        "200":
+          description: The app
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppDetail" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /services:
+    get:
+      operationId: listServices
+      tags: [services]
+      summary: Every datastore service with status, project and linked apps (SVC-2)
+      responses:
+        "200":
+          description: Services from the snapshot
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ServiceSummary" }
+
 security:
   - session: []
   - bearer: []
@@ -355,6 +572,9 @@ components:
         - not_invited
         - wrong_password
         - cannot_revoke_current
+        - project_exists
+        - confirm_mismatch
+        - dokku_unreachable
         - internal
 
     Role:
@@ -504,3 +724,231 @@ components:
       properties:
         token: { $ref: "#/components/schemas/Token" }
         secret: { type: string, description: "The full token (gk_...). Shown once." }
+
+    AppStatus:
+      type: string
+      enum: [running, stopped, deploying, failed]
+      description: Derived as in DESIGN.md "Status derivation" (APP-2)
+
+    ServiceStatus:
+      type: string
+      enum: [running, stopped, missing]
+      description: missing means the service container does not exist
+
+    ServerInfo:
+      type: object
+      required: [name, host, reachable, plugins, datastores, letsencrypt, unavailable]
+      properties:
+        name: { type: string, description: The server's host name }
+        host: { type: string, description: "Host for git remotes: GOKKU_DOKKU_HOST, or the request host" }
+        dokku_version: { type: string, nullable: true, description: Null until the first successful probe }
+        reachable: { type: boolean }
+        last_ok_at: { type: string, format: date-time, nullable: true }
+        error: { type: string, nullable: true, description: Why the last refresh failed }
+        error_command: { type: string, nullable: true, description: The dokku command that failed }
+        plugins:
+          type: array
+          items: { type: string }
+          description: Names of the installed and enabled plugins
+        datastores:
+          type: array
+          items: { type: string }
+          description: Datastore plugins Gokku can use (SVC-1)
+        letsencrypt: { type: boolean, description: The letsencrypt plugin is installed and enabled }
+        unavailable:
+          type: object
+          additionalProperties: { type: string }
+          description: Why a plugin or feature is hidden, keyed by plugin name or "dokku" (CMD-2)
+
+    PluginKind:
+      type: string
+      enum: [datastore, letsencrypt, other]
+
+    InstalledPlugin:
+      type: object
+      required: [name, version, kind, usable]
+      properties:
+        name: { type: string }
+        version: { type: string }
+        kind: { $ref: "#/components/schemas/PluginKind" }
+        usable: { type: boolean, description: Gokku uses this plugin }
+        reason: { type: string, nullable: true, description: Why Gokku cannot use it }
+
+    AvailablePlugin:
+      type: object
+      required: [name, kind, git_url]
+      properties:
+        name: { type: string }
+        kind: { $ref: "#/components/schemas/PluginKind" }
+        git_url: { type: string, description: "For sudo dokku plugin:install <git_url> <name>" }
+
+    PluginList:
+      type: object
+      required: [installed, available]
+      properties:
+        installed:
+          type: array
+          items: { $ref: "#/components/schemas/InstalledPlugin" }
+          description: Installed plugins that are not part of Dokku core
+        available:
+          type: array
+          items: { $ref: "#/components/schemas/AvailablePlugin" }
+          description: Recognised plugins that are not installed
+
+    ProjectRef:
+      type: object
+      required: [slug, name]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+
+    ServiceRef:
+      type: object
+      required: [type, name]
+      properties:
+        type: { type: string }
+        name: { type: string }
+
+    AppSummary:
+      type: object
+      required: [name, status, domains, deploy_source, services]
+      properties:
+        name: { type: string }
+        status: { $ref: "#/components/schemas/AppStatus" }
+        project: { allOf: [{ $ref: "#/components/schemas/ProjectRef" }], nullable: true, description: Null when unassigned (PRJ-6) }
+        domains:
+          type: array
+          items: { type: string }
+        revision: { type: string, nullable: true, description: Git sha of the deployed code }
+        deployed_at: { type: string, format: date-time, nullable: true }
+        deploy_source: { type: string, description: "Dokku's deploy source: git-push, docker-image, git-sync, or empty" }
+        services:
+          type: array
+          items: { $ref: "#/components/schemas/ServiceRef" }
+
+    Process:
+      type: object
+      required: [type, count, running]
+      properties:
+        type: { type: string }
+        count: { type: integer }
+        running: { type: integer }
+
+    AppDetail:
+      allOf:
+        - { $ref: "#/components/schemas/AppSummary" }
+        - type: object
+          required: [deployed, locked, builder, processes]
+          properties:
+            deployed: { type: boolean }
+            locked: { type: boolean, description: A deploy holds the app lock }
+            created_at: { type: string, format: date-time, nullable: true }
+            builder: { type: string }
+            source_image: { type: string, nullable: true }
+            processes:
+              type: array
+              items: { $ref: "#/components/schemas/Process" }
+
+    ServiceSummary:
+      type: object
+      required: [type, name, status, version, links]
+      properties:
+        type: { type: string }
+        name: { type: string }
+        status: { $ref: "#/components/schemas/ServiceStatus" }
+        version: { type: string }
+        project: { allOf: [{ $ref: "#/components/schemas/ProjectRef" }], nullable: true }
+        links:
+          type: array
+          items: { type: string }
+          description: Names of the linked apps
+
+    StatusCounts:
+      type: object
+      required: [running, stopped, deploying, failed]
+      properties:
+        running: { type: integer }
+        stopped: { type: integer }
+        deploying: { type: integer }
+        failed: { type: integer }
+
+    ProjectSummary:
+      type: object
+      required: [slug, name, description, health, status_counts, apps, services]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string }
+        health: { $ref: "#/components/schemas/AppStatus" }
+        status_counts: { $ref: "#/components/schemas/StatusCounts" }
+        apps:
+          type: array
+          items: { $ref: "#/components/schemas/AppState" }
+        services:
+          type: array
+          items: { $ref: "#/components/schemas/ServiceRef" }
+
+    AppState:
+      type: object
+      required: [name, status]
+      properties:
+        name: { type: string }
+        status: { $ref: "#/components/schemas/AppStatus" }
+
+    ActivityEntry:
+      type: object
+      required: [id, ts, actor_name, actor_type, action, target_type, target_name, result, source]
+      properties:
+        id: { type: integer, format: int64 }
+        ts: { type: string, format: date-time }
+        actor_name: { type: string }
+        actor_type: { type: string, enum: [user, token, system, git] }
+        action: { type: string }
+        target_type: { type: string }
+        target_name: { type: string }
+        result: { type: string, enum: [ok, fail] }
+        source: { type: string, enum: [web, api, git, system] }
+
+    ProjectDetail:
+      type: object
+      required: [slug, name, description, created_at, health, status_counts, apps, services, domain_count, activity]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string }
+        created_at: { type: string, format: date-time }
+        health: { $ref: "#/components/schemas/AppStatus" }
+        status_counts: { $ref: "#/components/schemas/StatusCounts" }
+        apps:
+          type: array
+          items: { $ref: "#/components/schemas/AppSummary" }
+        services:
+          type: array
+          items: { $ref: "#/components/schemas/ServiceSummary" }
+        domain_count: { type: integer }
+        last_deploy_at: { type: string, format: date-time, nullable: true }
+        activity:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityEntry" }
+          description: The latest audit entries for the project
+
+    ProjectSlug:
+      type: string
+      minLength: 1
+      maxLength: 40
+      pattern: "^[a-z0-9][a-z0-9-]{0,39}$"
+      description: Lowercase letters, digits and dashes; immutable after creation (PRJ-1)
+
+    CreateProjectRequest:
+      type: object
+      required: [name, slug]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        slug: { $ref: "#/components/schemas/ProjectSlug" }
+        description: { type: string, maxLength: 500 }
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        description: { type: string, maxLength: 500 }

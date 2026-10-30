@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net"
 	"net/http"
 
 	"gokku/internal/auth"
@@ -37,4 +38,13 @@ func baseURL(r *http.Request) string {
 		scheme = "https"
 	}
 	return scheme + "://" + r.Host
+}
+
+// requestHost is the host name the browser used, without a port, for git remote
+// instructions when GOKKU_DOKKU_HOST is not set.
+func requestHost(r *http.Request) string {
+	if host, _, err := net.SplitHostPort(r.Host); err == nil {
+		return host
+	}
+	return r.Host
 }

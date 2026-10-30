@@ -32,5 +32,8 @@ export const ErrorCode = {
   not_invited: 'not_invited',
   wrong_password: 'wrong_password',
   cannot_revoke_current: 'cannot_revoke_current',
+  project_exists: 'project_exists',
+  confirm_mismatch: 'confirm_mismatch',
+  dokku_unreachable: 'dokku_unreachable',
   internal: 'internal',
 } as const;

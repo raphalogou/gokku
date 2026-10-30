@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -18,8 +19,11 @@ import (
 	"gokku/internal/audit"
 	"gokku/internal/auth"
 	"gokku/internal/config"
+	"gokku/internal/dokku"
+	"gokku/internal/events"
 	"gokku/internal/secrets"
 	"gokku/internal/server"
+	"gokku/internal/snapshot"
 	"gokku/internal/store"
 	"gokku/internal/web"
 )
@@ -127,7 +131,18 @@ func serve(args []string) error {
 	if err != nil {
 		return err
 	}
-	apiHandler, err := api.New(api.Options{Auth: authSvc, DB: db, Audit: audit.New(db, log), Log: log})
+	runner, serverName, err := newRunner(ctx, cfg, db)
+	if err != nil {
+		return err
+	}
+	hub := events.NewHub()
+	snap := snapshot.New(snapshot.Options{
+		Client: dokku.NewClient(runner, log), Activity: snapshot.StoreActivity(db), Hub: hub, Log: log,
+	})
+	apiHandler, err := api.New(api.Options{
+		Auth: authSvc, DB: db, Audit: audit.New(db, log), Log: log, Snapshot: snap, Hub: hub,
+		ServerName: serverName, DokkuHost: cfg.DokkuHost,
+	})
 	if err != nil {
 		return err
 	}
@@ -160,6 +175,7 @@ func serve(args []string) error {
 	}
 
 	go pruneSessions(ctx, db, log)
+	go snap.Run(ctx)
 
 	errc := make(chan error, 1)
 	go func() { errc <- srv.Serve(ln) }()
@@ -178,6 +194,21 @@ func serve(args []string) error {
 		return fmt.Errorf("shutdown: %w", err)
 	}
 	return nil
+}
+
+// newRunner returns the Dokku runner and the server name shown in the UI. The fake runner
+// serves the mockup's data and fails while <data dir>/fake-fail exists (SRV-2).
+func newRunner(ctx context.Context, cfg config.Config, db *store.DB) (dokku.Runner, string, error) {
+	if cfg.Runner == config.RunnerFake {
+		fake := dokku.NewFakeRunner(time.Now())
+		fake.FailFile = filepath.Join(cfg.DataDir, "fake-fail")
+		return fake, "dokku-01", seedFake(ctx, db)
+	}
+	name, err := os.Hostname()
+	if err != nil {
+		name = "dokku"
+	}
+	return &dokku.ExecRunner{Bin: cfg.DokkuBin, Sudo: cfg.DokkuSudo}, name, nil
 }
 
 // pruneSessions deletes expired sessions every hour until ctx ends.

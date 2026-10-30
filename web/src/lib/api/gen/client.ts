@@ -13,18 +13,28 @@
  */
 import type {
   AcceptInviteRequest,
+  AppDetail,
+  AppSummary,
   ChangePasswordRequest,
+  CreateProjectRequest,
   CreateTokenRequest,
   Credentials,
+  DeleteProjectParams,
   Invite,
   InviteCreated,
   InviteUserRequest,
   Me,
+  PluginList,
+  ProjectDetail,
+  ProjectSummary,
+  ServerInfo,
+  ServiceSummary,
   Session,
   SetupStatus,
   Token,
   TokenCreated,
   UpdateMeRequest,
+  UpdateProjectRequest,
   UpdateUserRequest,
   User
 } from './model';
@@ -559,6 +569,437 @@ export const revokeToken = async (id: string, options?: Parameters<typeof apiFet
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export const getGetServerUrl = () => {
+
+
+
+
+  return `/api/v1/server`
+}
+
+/**
+ * @summary Server name, Dokku version, plugins and reachability (SRV-1)
+ */
+export const getServer = async ( options?: Parameters<typeof apiFetch>[1]): Promise<ServerInfo> => {
+
+  return apiFetch<ServerInfo>(getGetServerUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getRescanServerUrl = () => {
+
+
+
+
+  return `/api/v1/server/rescan`
+}
+
+/**
+ * @summary Re-run the capability probe and refresh the snapshot (PLG-2)
+ */
+export const rescanServer = async ( options?: Parameters<typeof apiFetch>[1]): Promise<ServerInfo> => {
+
+  return apiFetch<ServerInfo>(getRescanServerUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getListPluginsUrl = () => {
+
+
+
+
+  return `/api/v1/plugins`
+}
+
+/**
+ * @summary Installed plugins that Gokku uses and recognised plugins that are not installed (PLG-1)
+ */
+export const listPlugins = async ( options?: Parameters<typeof apiFetch>[1]): Promise<PluginList> => {
+
+  return apiFetch<PluginList>(getListPluginsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getStreamEventsUrl = () => {
+
+
+
+
+  return `/api/v1/events`
+}
+
+/**
+ * Each message has an `event` name (app.updated, app.removed, service.updated,
+ * project.updated, job.updated, server.status) and JSON `data` naming the object.
+ * A heartbeat comment is sent every 15 seconds (EVT-3).
+ * @summary Server-sent events that tell the client which data changed (EVT-1)
+ */
+export const streamEvents = async ( options?: Parameters<typeof apiFetch>[1]): Promise<string> => {
+
+  return apiFetch<string>(getStreamEventsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getListProjectsUrl = () => {
+
+
+
+
+  return `/api/v1/projects`
+}
+
+export const listProjects = async ( options?: Parameters<typeof apiFetch>[1]): Promise<ProjectSummary[]> => {
+
+  return apiFetch<ProjectSummary[]>(getListProjectsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getCreateProjectUrl = () => {
+
+
+
+
+  return `/api/v1/projects`
+}
+
+/**
+ * @summary Create a project (PRJ-1)
+ */
+export const createProject = async (createProjectRequest: CreateProjectRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ProjectDetail> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<ProjectDetail>(getCreateProjectUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createProjectRequest)
+  }
+);}
+
+
+
+export const getGetProjectUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}`
+}
+
+/**
+ * @summary Project overview (PRJ-3)
+ */
+export const getProject = async (slug: string, options?: Parameters<typeof apiFetch>[1]): Promise<ProjectDetail> => {
+
+  return apiFetch<ProjectDetail>(getGetProjectUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getUpdateProjectUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}`
+}
+
+/**
+ * @summary Change the name or description; the slug is immutable (PRJ-1)
+ */
+export const updateProject = async (slug: string,
+    updateProjectRequest: UpdateProjectRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ProjectDetail> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<ProjectDetail>(getUpdateProjectUrl(slug),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateProjectRequest)
+  }
+);}
+
+
+
+export const getDeleteProjectUrl = (slug: string,
+    params: DeleteProjectParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/projects/${slug}?${stringifiedParams}` : `/api/v1/projects/${slug}`
+}
+
+/**
+ * @summary Delete the project; its apps and services become unassigned (PRJ-4)
+ */
+export const deleteProject = async (slug: string,
+    params: DeleteProjectParams, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getDeleteProjectUrl(slug,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export const getAddProjectAppUrl = (slug: string,
+    app: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/apps/${app}`
+}
+
+/**
+ * @summary Add an app to the project, moving it out of any other project (PRJ-2)
+ */
+export const addProjectApp = async (slug: string,
+    app: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getAddProjectAppUrl(slug,app),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+export const getRemoveProjectAppUrl = (slug: string,
+    app: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/apps/${app}`
+}
+
+/**
+ * @summary Release an app from the project (PRJ-2)
+ */
+export const removeProjectApp = async (slug: string,
+    app: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getRemoveProjectAppUrl(slug,app),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export const getAddProjectServiceUrl = (slug: string,
+    type: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/services/${type}/${name}`
+}
+
+/**
+ * @summary Add a service to the project, moving it out of any other project (PRJ-2)
+ */
+export const addProjectService = async (slug: string,
+    type: string,
+    name: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getAddProjectServiceUrl(slug,type,name),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+export const getRemoveProjectServiceUrl = (slug: string,
+    type: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/services/${type}/${name}`
+}
+
+/**
+ * @summary Release a service from the project (PRJ-2)
+ */
+export const removeProjectService = async (slug: string,
+    type: string,
+    name: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getRemoveProjectServiceUrl(slug,type,name),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export const getListAppsUrl = () => {
+
+
+
+
+  return `/api/v1/apps`
+}
+
+/**
+ * @summary Every app with status, project, domains, last deploy and linked services (APP-1)
+ */
+export const listApps = async ( options?: Parameters<typeof apiFetch>[1]): Promise<AppSummary[]> => {
+
+  return apiFetch<AppSummary[]>(getListAppsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getGetAppUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}`
+}
+
+export const getApp = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<AppDetail> => {
+
+  return apiFetch<AppDetail>(getGetAppUrl(name),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getListServicesUrl = () => {
+
+
+
+
+  return `/api/v1/services`
+}
+
+/**
+ * @summary Every datastore service with status, project and linked apps (SVC-2)
+ */
+export const listServices = async ( options?: Parameters<typeof apiFetch>[1]): Promise<ServiceSummary[]> => {
+
+  return apiFetch<ServiceSummary[]>(getListServicesUrl(),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

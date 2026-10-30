@@ -297,3 +297,431 @@ export const RevokeTokenParams = zod.object({
 })
 
 export const RevokeTokenResponse = zod.void()
+
+
+/**
+ * @summary Server name, Dokku version, plugins and reachability (SRV-1)
+ */
+export const GetServerResponse = zod.object({
+  "name": zod.string().describe('The server\'s host name'),
+  "host": zod.string().describe('Host for git remotes: GOKKU_DOKKU_HOST, or the request host'),
+  "dokku_version": zod.string().nullish().describe('Null until the first successful probe'),
+  "reachable": zod.boolean(),
+  "last_ok_at": zod.iso.datetime({"offset":true}).nullish(),
+  "error": zod.string().nullish().describe('Why the last refresh failed'),
+  "error_command": zod.string().nullish().describe('The dokku command that failed'),
+  "plugins": zod.array(zod.string()).describe('Names of the installed and enabled plugins'),
+  "datastores": zod.array(zod.string()).describe('Datastore plugins Gokku can use (SVC-1)'),
+  "letsencrypt": zod.boolean().describe('The letsencrypt plugin is installed and enabled'),
+  "unavailable": zod.record(zod.string(), zod.string()).describe('Why a plugin or feature is hidden, keyed by plugin name or "dokku" (CMD-2)')
+})
+
+
+/**
+ * @summary Re-run the capability probe and refresh the snapshot (PLG-2)
+ */
+export const RescanServerResponse = zod.object({
+  "name": zod.string().describe('The server\'s host name'),
+  "host": zod.string().describe('Host for git remotes: GOKKU_DOKKU_HOST, or the request host'),
+  "dokku_version": zod.string().nullish().describe('Null until the first successful probe'),
+  "reachable": zod.boolean(),
+  "last_ok_at": zod.iso.datetime({"offset":true}).nullish(),
+  "error": zod.string().nullish().describe('Why the last refresh failed'),
+  "error_command": zod.string().nullish().describe('The dokku command that failed'),
+  "plugins": zod.array(zod.string()).describe('Names of the installed and enabled plugins'),
+  "datastores": zod.array(zod.string()).describe('Datastore plugins Gokku can use (SVC-1)'),
+  "letsencrypt": zod.boolean().describe('The letsencrypt plugin is installed and enabled'),
+  "unavailable": zod.record(zod.string(), zod.string()).describe('Why a plugin or feature is hidden, keyed by plugin name or "dokku" (CMD-2)')
+})
+
+
+/**
+ * @summary Installed plugins that Gokku uses and recognised plugins that are not installed (PLG-1)
+ */
+export const ListPluginsResponse = zod.object({
+  "installed": zod.array(zod.object({
+  "name": zod.string(),
+  "version": zod.string(),
+  "kind": zod.enum(['datastore', 'letsencrypt', 'other']),
+  "usable": zod.boolean().describe('Gokku uses this plugin'),
+  "reason": zod.string().nullish().describe('Why Gokku cannot use it')
+})).describe('Installed plugins that are not part of Dokku core'),
+  "available": zod.array(zod.object({
+  "name": zod.string(),
+  "kind": zod.enum(['datastore', 'letsencrypt', 'other']),
+  "git_url": zod.string().describe('For sudo dokku plugin:install <git_url> <name>')
+})).describe('Recognised plugins that are not installed')
+})
+
+
+/**
+ * Each message has an `event` name (app.updated, app.removed, service.updated,
+ * project.updated, job.updated, server.status) and JSON `data` naming the object.
+ * A heartbeat comment is sent every 15 seconds (EVT-3).
+ * @summary Server-sent events that tell the client which data changed (EVT-1)
+ */
+export const StreamEventsResponse = zod.unknown()
+
+
+export const ListProjectsResponseItem = zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "health": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "status_counts": zod.object({
+  "running": zod.int(),
+  "stopped": zod.int(),
+  "deploying": zod.int(),
+  "failed": zod.int()
+}),
+  "apps": zod.array(zod.object({
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)')
+})),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+}))
+})
+export const ListProjectsResponse = zod.array(ListProjectsResponseItem)
+
+
+/**
+ * @summary Create a project (PRJ-1)
+ */
+export const createProjectBodyNameMax = 80;
+
+export const createProjectBodySlugMax = 40;
+
+
+export const createProjectBodySlugRegExp = new RegExp('^[a-z0-9][a-z0-9-]{0,39}$');
+export const createProjectBodyDescriptionMax = 500;
+
+
+
+export const CreateProjectBody = zod.object({
+  "name": zod.string().min(1).max(createProjectBodyNameMax),
+  "slug": zod.string().min(1).max(createProjectBodySlugMax).regex(createProjectBodySlugRegExp).describe('Lowercase letters, digits and dashes; immutable after creation (PRJ-1)'),
+  "description": zod.string().max(createProjectBodyDescriptionMax).optional()
+})
+
+export const CreateProjectResponse = zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "created_at": zod.iso.datetime({"offset":true}),
+  "health": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "status_counts": zod.object({
+  "running": zod.int(),
+  "stopped": zod.int(),
+  "deploying": zod.int(),
+  "failed": zod.int()
+}),
+  "apps": zod.array(zod.object({
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional().describe('Null when unassigned (PRJ-6)'),
+  "domains": zod.array(zod.string()),
+  "revision": zod.string().nullish().describe('Git sha of the deployed code'),
+  "deployed_at": zod.iso.datetime({"offset":true}).nullish(),
+  "deploy_source": zod.string().describe('Dokku\'s deploy source: git-push, docker-image, git-sync, or empty'),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+}))
+})),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'missing']).describe('missing means the service container does not exist'),
+  "version": zod.string(),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional(),
+  "links": zod.array(zod.string()).describe('Names of the linked apps')
+})),
+  "domain_count": zod.int(),
+  "last_deploy_at": zod.iso.datetime({"offset":true}).nullish(),
+  "activity": zod.array(zod.object({
+  "id": zod.int(),
+  "ts": zod.iso.datetime({"offset":true}),
+  "actor_name": zod.string(),
+  "actor_type": zod.enum(['user', 'token', 'system', 'git']),
+  "action": zod.string(),
+  "target_type": zod.string(),
+  "target_name": zod.string(),
+  "result": zod.enum(['ok', 'fail']),
+  "source": zod.enum(['web', 'api', 'git', 'system'])
+})).describe('The latest audit entries for the project')
+})
+
+
+/**
+ * @summary Project overview (PRJ-3)
+ */
+export const GetProjectParams = zod.object({
+  "slug": zod.string()
+})
+
+export const GetProjectResponse = zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "created_at": zod.iso.datetime({"offset":true}),
+  "health": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "status_counts": zod.object({
+  "running": zod.int(),
+  "stopped": zod.int(),
+  "deploying": zod.int(),
+  "failed": zod.int()
+}),
+  "apps": zod.array(zod.object({
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional().describe('Null when unassigned (PRJ-6)'),
+  "domains": zod.array(zod.string()),
+  "revision": zod.string().nullish().describe('Git sha of the deployed code'),
+  "deployed_at": zod.iso.datetime({"offset":true}).nullish(),
+  "deploy_source": zod.string().describe('Dokku\'s deploy source: git-push, docker-image, git-sync, or empty'),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+}))
+})),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'missing']).describe('missing means the service container does not exist'),
+  "version": zod.string(),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional(),
+  "links": zod.array(zod.string()).describe('Names of the linked apps')
+})),
+  "domain_count": zod.int(),
+  "last_deploy_at": zod.iso.datetime({"offset":true}).nullish(),
+  "activity": zod.array(zod.object({
+  "id": zod.int(),
+  "ts": zod.iso.datetime({"offset":true}),
+  "actor_name": zod.string(),
+  "actor_type": zod.enum(['user', 'token', 'system', 'git']),
+  "action": zod.string(),
+  "target_type": zod.string(),
+  "target_name": zod.string(),
+  "result": zod.enum(['ok', 'fail']),
+  "source": zod.enum(['web', 'api', 'git', 'system'])
+})).describe('The latest audit entries for the project')
+})
+
+
+/**
+ * @summary Change the name or description; the slug is immutable (PRJ-1)
+ */
+export const UpdateProjectParams = zod.object({
+  "slug": zod.string()
+})
+
+export const updateProjectBodyNameMax = 80;
+
+export const updateProjectBodyDescriptionMax = 500;
+
+
+
+export const UpdateProjectBody = zod.object({
+  "name": zod.string().min(1).max(updateProjectBodyNameMax).optional(),
+  "description": zod.string().max(updateProjectBodyDescriptionMax).optional()
+})
+
+export const UpdateProjectResponse = zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "created_at": zod.iso.datetime({"offset":true}),
+  "health": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "status_counts": zod.object({
+  "running": zod.int(),
+  "stopped": zod.int(),
+  "deploying": zod.int(),
+  "failed": zod.int()
+}),
+  "apps": zod.array(zod.object({
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional().describe('Null when unassigned (PRJ-6)'),
+  "domains": zod.array(zod.string()),
+  "revision": zod.string().nullish().describe('Git sha of the deployed code'),
+  "deployed_at": zod.iso.datetime({"offset":true}).nullish(),
+  "deploy_source": zod.string().describe('Dokku\'s deploy source: git-push, docker-image, git-sync, or empty'),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+}))
+})),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'missing']).describe('missing means the service container does not exist'),
+  "version": zod.string(),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional(),
+  "links": zod.array(zod.string()).describe('Names of the linked apps')
+})),
+  "domain_count": zod.int(),
+  "last_deploy_at": zod.iso.datetime({"offset":true}).nullish(),
+  "activity": zod.array(zod.object({
+  "id": zod.int(),
+  "ts": zod.iso.datetime({"offset":true}),
+  "actor_name": zod.string(),
+  "actor_type": zod.enum(['user', 'token', 'system', 'git']),
+  "action": zod.string(),
+  "target_type": zod.string(),
+  "target_name": zod.string(),
+  "result": zod.enum(['ok', 'fail']),
+  "source": zod.enum(['web', 'api', 'git', 'system'])
+})).describe('The latest audit entries for the project')
+})
+
+
+/**
+ * @summary Delete the project; its apps and services become unassigned (PRJ-4)
+ */
+export const DeleteProjectParams = zod.object({
+  "slug": zod.string()
+})
+
+export const DeleteProjectQueryParams = zod.object({
+  "confirm": zod.string().describe('Must equal the slug')
+})
+
+export const DeleteProjectResponse = zod.void()
+
+
+/**
+ * @summary Add an app to the project, moving it out of any other project (PRJ-2)
+ */
+export const AddProjectAppParams = zod.object({
+  "slug": zod.string(),
+  "app": zod.string()
+})
+
+export const AddProjectAppResponse = zod.void()
+
+
+/**
+ * @summary Release an app from the project (PRJ-2)
+ */
+export const RemoveProjectAppParams = zod.object({
+  "slug": zod.string(),
+  "app": zod.string()
+})
+
+export const RemoveProjectAppResponse = zod.void()
+
+
+/**
+ * @summary Add a service to the project, moving it out of any other project (PRJ-2)
+ */
+export const AddProjectServiceParams = zod.object({
+  "slug": zod.string(),
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const AddProjectServiceResponse = zod.void()
+
+
+/**
+ * @summary Release a service from the project (PRJ-2)
+ */
+export const RemoveProjectServiceParams = zod.object({
+  "slug": zod.string(),
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const RemoveProjectServiceResponse = zod.void()
+
+
+/**
+ * @summary Every app with status, project, domains, last deploy and linked services (APP-1)
+ */
+export const ListAppsResponseItem = zod.object({
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional().describe('Null when unassigned (PRJ-6)'),
+  "domains": zod.array(zod.string()),
+  "revision": zod.string().nullish().describe('Git sha of the deployed code'),
+  "deployed_at": zod.iso.datetime({"offset":true}).nullish(),
+  "deploy_source": zod.string().describe('Dokku\'s deploy source: git-push, docker-image, git-sync, or empty'),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+}))
+})
+export const ListAppsResponse = zod.array(ListAppsResponseItem)
+
+
+export const GetAppParams = zod.object({
+  "name": zod.string()
+})
+
+export const GetAppResponse = zod.object({
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional().describe('Null when unassigned (PRJ-6)'),
+  "domains": zod.array(zod.string()),
+  "revision": zod.string().nullish().describe('Git sha of the deployed code'),
+  "deployed_at": zod.iso.datetime({"offset":true}).nullish(),
+  "deploy_source": zod.string().describe('Dokku\'s deploy source: git-push, docker-image, git-sync, or empty'),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+}))
+}).and(zod.object({
+  "deployed": zod.boolean(),
+  "locked": zod.boolean().describe('A deploy holds the app lock'),
+  "created_at": zod.iso.datetime({"offset":true}).nullish(),
+  "builder": zod.string(),
+  "source_image": zod.string().nullish(),
+  "processes": zod.array(zod.object({
+  "type": zod.string(),
+  "count": zod.int(),
+  "running": zod.int()
+}))
+}))
+
+
+/**
+ * @summary Every datastore service with status, project and linked apps (SVC-2)
+ */
+export const ListServicesResponseItem = zod.object({
+  "type": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'missing']).describe('missing means the service container does not exist'),
+  "version": zod.string(),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional(),
+  "links": zod.array(zod.string()).describe('Names of the linked apps')
+})
+export const ListServicesResponse = zod.array(ListServicesResponseItem)

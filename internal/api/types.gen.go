@@ -7,10 +7,102 @@ import (
 	"time"
 )
 
+// Defines values for ActivityEntryActorType.
+const (
+	ActivityEntryActorTypeGit    ActivityEntryActorType = "git"
+	ActivityEntryActorTypeSystem ActivityEntryActorType = "system"
+	ActivityEntryActorTypeToken  ActivityEntryActorType = "token"
+	ActivityEntryActorTypeUser   ActivityEntryActorType = "user"
+)
+
+// Valid indicates whether the value is a known member of the ActivityEntryActorType enum.
+func (e ActivityEntryActorType) Valid() bool {
+	switch e {
+	case ActivityEntryActorTypeGit:
+		return true
+	case ActivityEntryActorTypeSystem:
+		return true
+	case ActivityEntryActorTypeToken:
+		return true
+	case ActivityEntryActorTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActivityEntryResult.
+const (
+	ActivityEntryResultFail ActivityEntryResult = "fail"
+	ActivityEntryResultOk   ActivityEntryResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the ActivityEntryResult enum.
+func (e ActivityEntryResult) Valid() bool {
+	switch e {
+	case ActivityEntryResultFail:
+		return true
+	case ActivityEntryResultOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActivityEntrySource.
+const (
+	ActivityEntrySourceApi    ActivityEntrySource = "api"
+	ActivityEntrySourceGit    ActivityEntrySource = "git"
+	ActivityEntrySourceSystem ActivityEntrySource = "system"
+	ActivityEntrySourceWeb    ActivityEntrySource = "web"
+)
+
+// Valid indicates whether the value is a known member of the ActivityEntrySource enum.
+func (e ActivityEntrySource) Valid() bool {
+	switch e {
+	case ActivityEntrySourceApi:
+		return true
+	case ActivityEntrySourceGit:
+		return true
+	case ActivityEntrySourceSystem:
+		return true
+	case ActivityEntrySourceWeb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppStatus.
+const (
+	AppStatusDeploying AppStatus = "deploying"
+	AppStatusFailed    AppStatus = "failed"
+	AppStatusRunning   AppStatus = "running"
+	AppStatusStopped   AppStatus = "stopped"
+)
+
+// Valid indicates whether the value is a known member of the AppStatus enum.
+func (e AppStatus) Valid() bool {
+	switch e {
+	case AppStatusDeploying:
+		return true
+	case AppStatusFailed:
+		return true
+	case AppStatusRunning:
+		return true
+	case AppStatusStopped:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ErrorCode.
 const (
 	ErrorCodeCannotRevokeCurrent ErrorCode = "cannot_revoke_current"
+	ErrorCodeConfirmMismatch     ErrorCode = "confirm_mismatch"
 	ErrorCodeCsrfFailed          ErrorCode = "csrf_failed"
+	ErrorCodeDokkuUnreachable    ErrorCode = "dokku_unreachable"
 	ErrorCodeForbidden           ErrorCode = "forbidden"
 	ErrorCodeInternal            ErrorCode = "internal"
 	ErrorCodeInvalidCredentials  ErrorCode = "invalid_credentials"
@@ -19,6 +111,7 @@ const (
 	ErrorCodeMethodNotAllowed    ErrorCode = "method_not_allowed"
 	ErrorCodeNotFound            ErrorCode = "not_found"
 	ErrorCodeNotInvited          ErrorCode = "not_invited"
+	ErrorCodeProjectExists       ErrorCode = "project_exists"
 	ErrorCodeRateLimited         ErrorCode = "rate_limited"
 	ErrorCodeSetupComplete       ErrorCode = "setup_complete"
 	ErrorCodeTokenNameTaken      ErrorCode = "token_name_taken"
@@ -33,7 +126,11 @@ func (e ErrorCode) Valid() bool {
 	switch e {
 	case ErrorCodeCannotRevokeCurrent:
 		return true
+	case ErrorCodeConfirmMismatch:
+		return true
 	case ErrorCodeCsrfFailed:
+		return true
+	case ErrorCodeDokkuUnreachable:
 		return true
 	case ErrorCodeForbidden:
 		return true
@@ -51,6 +148,8 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeNotInvited:
 		return true
+	case ErrorCodeProjectExists:
+		return true
 	case ErrorCodeRateLimited:
 		return true
 	case ErrorCodeSetupComplete:
@@ -64,6 +163,27 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeValidationFailed:
 		return true
 	case ErrorCodeWrongPassword:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PluginKind.
+const (
+	PluginKindDatastore   PluginKind = "datastore"
+	PluginKindLetsencrypt PluginKind = "letsencrypt"
+	PluginKindOther       PluginKind = "other"
+)
+
+// Valid indicates whether the value is a known member of the PluginKind enum.
+func (e PluginKind) Valid() bool {
+	switch e {
+	case PluginKindDatastore:
+		return true
+	case PluginKindLetsencrypt:
+		return true
+	case PluginKindOther:
 		return true
 	default:
 		return false
@@ -85,6 +205,27 @@ func (e Role) Valid() bool {
 	case RoleOperator:
 		return true
 	case RoleViewer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ServiceStatus.
+const (
+	ServiceStatusMissing ServiceStatus = "missing"
+	ServiceStatusRunning ServiceStatus = "running"
+	ServiceStatusStopped ServiceStatus = "stopped"
+)
+
+// Valid indicates whether the value is a known member of the ServiceStatus enum.
+func (e ServiceStatus) Valid() bool {
+	switch e {
+	case ServiceStatusMissing:
+		return true
+	case ServiceStatusRunning:
+		return true
+	case ServiceStatusStopped:
 		return true
 	default:
 		return false
@@ -158,6 +299,94 @@ type AcceptInviteRequest struct {
 	Token    string   `json:"token"`
 }
 
+// ActivityEntry defines model for ActivityEntry.
+type ActivityEntry struct {
+	Action     string                 `json:"action"`
+	ActorName  string                 `json:"actor_name"`
+	ActorType  ActivityEntryActorType `json:"actor_type"`
+	Id         int64                  `json:"id"`
+	Result     ActivityEntryResult    `json:"result"`
+	Source     ActivityEntrySource    `json:"source"`
+	TargetName string                 `json:"target_name"`
+	TargetType string                 `json:"target_type"`
+	Ts         time.Time              `json:"ts"`
+}
+
+// ActivityEntryActorType defines model for ActivityEntry.ActorType.
+type ActivityEntryActorType string
+
+// ActivityEntryResult defines model for ActivityEntry.Result.
+type ActivityEntryResult string
+
+// ActivityEntrySource defines model for ActivityEntry.Source.
+type ActivityEntrySource string
+
+// AppDetail defines model for AppDetail.
+type AppDetail struct {
+	Builder   string     `json:"builder"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// DeploySource Dokku's deploy source: git-push, docker-image, git-sync, or empty
+	DeploySource string     `json:"deploy_source"`
+	Deployed     bool       `json:"deployed"`
+	DeployedAt   *time.Time `json:"deployed_at,omitempty"`
+	Domains      []string   `json:"domains"`
+
+	// Locked A deploy holds the app lock
+	Locked    bool      `json:"locked"`
+	Name      string    `json:"name"`
+	Processes []Process `json:"processes"`
+
+	// Project Null when unassigned (PRJ-6)
+	Project *ProjectRef `json:"project,omitempty"`
+
+	// Revision Git sha of the deployed code
+	Revision    *string      `json:"revision,omitempty"`
+	Services    []ServiceRef `json:"services"`
+	SourceImage *string      `json:"source_image,omitempty"`
+
+	// Status Derived as in DESIGN.md "Status derivation" (APP-2)
+	Status AppStatus `json:"status"`
+}
+
+// AppState defines model for AppState.
+type AppState struct {
+	Name string `json:"name"`
+
+	// Status Derived as in DESIGN.md "Status derivation" (APP-2)
+	Status AppStatus `json:"status"`
+}
+
+// AppStatus Derived as in DESIGN.md "Status derivation" (APP-2)
+type AppStatus string
+
+// AppSummary defines model for AppSummary.
+type AppSummary struct {
+	// DeploySource Dokku's deploy source: git-push, docker-image, git-sync, or empty
+	DeploySource string     `json:"deploy_source"`
+	DeployedAt   *time.Time `json:"deployed_at,omitempty"`
+	Domains      []string   `json:"domains"`
+	Name         string     `json:"name"`
+
+	// Project Null when unassigned (PRJ-6)
+	Project *ProjectRef `json:"project,omitempty"`
+
+	// Revision Git sha of the deployed code
+	Revision *string      `json:"revision,omitempty"`
+	Services []ServiceRef `json:"services"`
+
+	// Status Derived as in DESIGN.md "Status derivation" (APP-2)
+	Status AppStatus `json:"status"`
+}
+
+// AvailablePlugin defines model for AvailablePlugin.
+type AvailablePlugin struct {
+	// GitUrl For sudo dokku plugin:install <git_url> <name>
+	GitUrl string     `json:"git_url"`
+	Kind   PluginKind `json:"kind"`
+	Name   string     `json:"name"`
+}
+
 // ChangePasswordRequest defines model for ChangePasswordRequest.
 type ChangePasswordRequest struct {
 	// CurrentPassword Minimum length is SetupStatus.min_password_length (AUTH-2)
@@ -165,6 +394,15 @@ type ChangePasswordRequest struct {
 
 	// NewPassword Minimum length is SetupStatus.min_password_length (AUTH-2)
 	NewPassword Password `json:"new_password"`
+}
+
+// CreateProjectRequest defines model for CreateProjectRequest.
+type CreateProjectRequest struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+
+	// Slug Lowercase letters, digits and dashes; immutable after creation (PRJ-1)
+	Slug ProjectSlug `json:"slug"`
 }
 
 // CreateTokenRequest defines model for CreateTokenRequest.
@@ -193,6 +431,19 @@ type Error struct {
 
 // ErrorCode defines model for ErrorCode.
 type ErrorCode string
+
+// InstalledPlugin defines model for InstalledPlugin.
+type InstalledPlugin struct {
+	Kind PluginKind `json:"kind"`
+	Name string     `json:"name"`
+
+	// Reason Why Gokku cannot use it
+	Reason *string `json:"reason,omitempty"`
+
+	// Usable Gokku uses this plugin
+	Usable  bool   `json:"usable"`
+	Version string `json:"version"`
+}
 
 // Invite defines model for Invite.
 type Invite struct {
@@ -228,8 +479,121 @@ type Me struct {
 // Password Minimum length is SetupStatus.min_password_length (AUTH-2)
 type Password = string
 
+// PluginKind defines model for PluginKind.
+type PluginKind string
+
+// PluginList defines model for PluginList.
+type PluginList struct {
+	// Available Recognised plugins that are not installed
+	Available []AvailablePlugin `json:"available"`
+
+	// Installed Installed plugins that are not part of Dokku core
+	Installed []InstalledPlugin `json:"installed"`
+}
+
+// Process defines model for Process.
+type Process struct {
+	Count   int    `json:"count"`
+	Running int    `json:"running"`
+	Type    string `json:"type"`
+}
+
+// ProjectDetail defines model for ProjectDetail.
+type ProjectDetail struct {
+	// Activity The latest audit entries for the project
+	Activity    []ActivityEntry `json:"activity"`
+	Apps        []AppSummary    `json:"apps"`
+	CreatedAt   time.Time       `json:"created_at"`
+	Description string          `json:"description"`
+	DomainCount int             `json:"domain_count"`
+
+	// Health Derived as in DESIGN.md "Status derivation" (APP-2)
+	Health       AppStatus        `json:"health"`
+	LastDeployAt *time.Time       `json:"last_deploy_at,omitempty"`
+	Name         string           `json:"name"`
+	Services     []ServiceSummary `json:"services"`
+	Slug         string           `json:"slug"`
+	StatusCounts StatusCounts     `json:"status_counts"`
+}
+
+// ProjectRef defines model for ProjectRef.
+type ProjectRef struct {
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+// ProjectSlug Lowercase letters, digits and dashes; immutable after creation (PRJ-1)
+type ProjectSlug = string
+
+// ProjectSummary defines model for ProjectSummary.
+type ProjectSummary struct {
+	Apps        []AppState `json:"apps"`
+	Description string     `json:"description"`
+
+	// Health Derived as in DESIGN.md "Status derivation" (APP-2)
+	Health       AppStatus    `json:"health"`
+	Name         string       `json:"name"`
+	Services     []ServiceRef `json:"services"`
+	Slug         string       `json:"slug"`
+	StatusCounts StatusCounts `json:"status_counts"`
+}
+
 // Role defines model for Role.
 type Role string
+
+// ServerInfo defines model for ServerInfo.
+type ServerInfo struct {
+	// Datastores Datastore plugins Gokku can use (SVC-1)
+	Datastores []string `json:"datastores"`
+
+	// DokkuVersion Null until the first successful probe
+	DokkuVersion *string `json:"dokku_version,omitempty"`
+
+	// Error Why the last refresh failed
+	Error *string `json:"error,omitempty"`
+
+	// ErrorCommand The dokku command that failed
+	ErrorCommand *string `json:"error_command,omitempty"`
+
+	// Host Host for git remotes: GOKKU_DOKKU_HOST, or the request host
+	Host     string     `json:"host"`
+	LastOkAt *time.Time `json:"last_ok_at,omitempty"`
+
+	// Letsencrypt The letsencrypt plugin is installed and enabled
+	Letsencrypt bool `json:"letsencrypt"`
+
+	// Name The server's host name
+	Name string `json:"name"`
+
+	// Plugins Names of the installed and enabled plugins
+	Plugins   []string `json:"plugins"`
+	Reachable bool     `json:"reachable"`
+
+	// Unavailable Why a plugin or feature is hidden, keyed by plugin name or "dokku" (CMD-2)
+	Unavailable map[string]string `json:"unavailable"`
+}
+
+// ServiceRef defines model for ServiceRef.
+type ServiceRef struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+// ServiceStatus missing means the service container does not exist
+type ServiceStatus string
+
+// ServiceSummary defines model for ServiceSummary.
+type ServiceSummary struct {
+	// Links Names of the linked apps
+	Links   []string    `json:"links"`
+	Name    string      `json:"name"`
+	Project *ProjectRef `json:"project,omitempty"`
+
+	// Status missing means the service container does not exist
+	Status  ServiceStatus `json:"status"`
+	Type    string        `json:"type"`
+	Version string        `json:"version"`
+}
 
 // Session defines model for Session.
 type Session struct {
@@ -248,6 +612,14 @@ type Session struct {
 type SetupStatus struct {
 	MinPasswordLength int  `json:"min_password_length"`
 	SetupRequired     bool `json:"setup_required"`
+}
+
+// StatusCounts defines model for StatusCounts.
+type StatusCounts struct {
+	Deploying int `json:"deploying"`
+	Failed    int `json:"failed"`
+	Running   int `json:"running"`
+	Stopped   int `json:"stopped"`
 }
 
 // Theme defines model for Theme.
@@ -283,6 +655,12 @@ type UpdateMeRequest struct {
 	Username *Username `json:"username,omitempty"`
 }
 
+// UpdateProjectRequest defines model for UpdateProjectRequest.
+type UpdateProjectRequest struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
+
 // UpdateUserRequest defines model for UpdateUserRequest.
 type UpdateUserRequest struct {
 	Role *Role `json:"role,omitempty"`
@@ -311,6 +689,12 @@ type UserStatus string
 // Username Lowercase letters, digits, dash and underscore; starts with a letter or digit (USR-1)
 type Username = string
 
+// DeleteProjectParams defines parameters for DeleteProject.
+type DeleteProjectParams struct {
+	// Confirm Must equal the slug
+	Confirm string `form:"confirm" json:"confirm"`
+}
+
 // AcceptInviteJSONRequestBody defines body for AcceptInvite for application/json ContentType.
 type AcceptInviteJSONRequestBody = AcceptInviteRequest
 
@@ -322,6 +706,12 @@ type UpdateMeJSONRequestBody = UpdateMeRequest
 
 // ChangePasswordJSONRequestBody defines body for ChangePassword for application/json ContentType.
 type ChangePasswordJSONRequestBody = ChangePasswordRequest
+
+// CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
+type CreateProjectJSONRequestBody = CreateProjectRequest
+
+// UpdateProjectJSONRequestBody defines body for UpdateProject for application/json ContentType.
+type UpdateProjectJSONRequestBody = UpdateProjectRequest
 
 // CompleteSetupJSONRequestBody defines body for CompleteSetup for application/json ContentType.
 type CompleteSetupJSONRequestBody = Credentials

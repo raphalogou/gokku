@@ -4,12 +4,15 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"gokku/internal/audit"
 	"gokku/internal/auth"
 	"gokku/internal/authz"
+	"gokku/internal/events"
+	"gokku/internal/snapshot"
 	"gokku/internal/store"
 )
 
@@ -17,25 +20,44 @@ import (
 
 // API holds the dependencies of the handlers.
 type API struct {
-	auth    *auth.Service
-	db      *store.DB
-	audit   *audit.Recorder
-	log     *slog.Logger
-	handler http.Handler
-	routes  []RouteInfo
+	auth       *auth.Service
+	db         *store.DB
+	audit      *audit.Recorder
+	log        *slog.Logger
+	snap       *snapshot.Refresher
+	hub        *events.Hub
+	serverName string
+	dokkuHost  string
+	heartbeat  time.Duration
+	handler    http.Handler
+	routes     []RouteInfo
 }
 
 // Options are the dependencies of the API.
 type Options struct {
-	Auth  *auth.Service
-	DB    *store.DB
-	Audit *audit.Recorder
-	Log   *slog.Logger
+	Auth     *auth.Service
+	DB       *store.DB
+	Audit    *audit.Recorder
+	Log      *slog.Logger
+	Snapshot *snapshot.Refresher
+	Hub      *events.Hub
+	// ServerName is shown in the UI, for example the host name of the Dokku server.
+	ServerName string
+	// DokkuHost is the host in git remote instructions; empty means the request host.
+	DokkuHost string
+	// Heartbeat is the SSE heartbeat interval; zero means DefaultHeartbeat (EVT-3).
+	Heartbeat time.Duration
 }
 
 // New builds the API handler, to be mounted at /api/v1.
 func New(opts Options) (*API, error) {
-	a := &API{auth: opts.Auth, db: opts.DB, audit: opts.Audit, log: opts.Log}
+	a := &API{
+		auth: opts.Auth, db: opts.DB, audit: opts.Audit, log: opts.Log, snap: opts.Snapshot, hub: opts.Hub,
+		serverName: opts.ServerName, dokkuHost: opts.DokkuHost, heartbeat: opts.Heartbeat,
+	}
+	if a.heartbeat == 0 {
+		a.heartbeat = DefaultHeartbeat
+	}
 
 	r := chi.NewRouter()
 	r.Use(a.authenticate, csrf)
@@ -86,4 +108,24 @@ func (a *API) register(r *router) {
 	r.Route(http.MethodGet, "/tokens", authz.TokenManage, a.listTokens)
 	r.Route(http.MethodPost, "/tokens", authz.TokenManage, a.createToken)
 	r.Route(http.MethodDelete, "/tokens/{id}", authz.TokenManage, a.revokeToken)
+
+	r.Route(http.MethodGet, "/server", authz.PluginView, a.getServer)
+	r.Route(http.MethodPost, "/server/rescan", authz.ServerRescan, a.rescanServer)
+	r.Route(http.MethodGet, "/plugins", authz.PluginView, a.listPlugins)
+	r.Route(http.MethodGet, "/events", authz.AppView, a.streamEvents)
+
+	r.Route(http.MethodGet, "/projects", authz.ProjectView, a.listProjects)
+	r.Route(http.MethodPost, "/projects", authz.ProjectCreate, a.createProject)
+	r.Route(http.MethodGet, "/projects/{slug}", authz.ProjectView, a.getProject)
+	r.Route(http.MethodPatch, "/projects/{slug}", authz.ProjectUpdate, a.updateProject)
+	r.Route(http.MethodDelete, "/projects/{slug}", authz.ProjectDelete, a.deleteProject)
+	r.Route(http.MethodPut, "/projects/{slug}/apps/{app}", authz.ProjectMembersWrite, a.addProjectApp)
+	r.Route(http.MethodDelete, "/projects/{slug}/apps/{app}", authz.ProjectMembersWrite, a.removeProjectApp)
+	r.Route(http.MethodPut, "/projects/{slug}/services/{type}/{name}", authz.ProjectMembersWrite, a.addProjectService)
+	r.Route(http.MethodDelete, "/projects/{slug}/services/{type}/{name}", authz.ProjectMembersWrite, a.removeProjectService)
+
+	r.Route(http.MethodGet, "/apps", authz.AppView, a.listApps)
+	r.Route(http.MethodGet, "/apps/{name}", authz.AppView, a.getApp)
+
+	r.Route(http.MethodGet, "/services", authz.ServiceView, a.listServices)
 }

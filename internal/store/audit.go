@@ -38,3 +38,11 @@ func (db *DB) AuditEntries(ctx context.Context, limit int) ([]AuditEntry, error)
 	err := db.R.SelectContext(ctx, &out, `SELECT * FROM audit_log ORDER BY id DESC LIMIT ?`, limit)
 	return out, err
 }
+
+// ProjectAuditEntries returns the latest entries for a project, newest first (PRJ-3).
+func (db *DB) ProjectAuditEntries(ctx context.Context, slug string, limit int) ([]AuditEntry, error) {
+	out := []AuditEntry{}
+	err := db.R.SelectContext(ctx, &out,
+		`SELECT * FROM audit_log WHERE project_slug = ? ORDER BY id DESC LIMIT ?`, slug, limit)
+	return out, err
+}

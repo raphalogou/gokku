@@ -59,3 +59,61 @@ One entry per decision: date, decision, reason, alternatives.
 - **Reason:** `SEC-6` allows fonts, scripts and styles from `'self'` only. Inlined `data:` fonts and injected
   `<style>` elements were blocked; the e2e tests fail on any CSP violation in the console.
 - **Alternatives:** add `data:` to `font-src` and `'unsafe-inline'` to `style-src`.
+
+## 2026-10-30: Bulk reports use the text format
+
+- **Decision:** the snapshot runs `apps:report`, `ps:report`, `domains:report`, `git:report`,
+  `builder:report` and `<datastore>:info` with no target and parses their `=====> <name> <kind> information`
+  text sections, not `--format json`.
+- **Reason:** `NFR-2` asks for one command per plugin per refresh. Without a target, Dokku 0.38 and
+  dokku-datastore 0.10 print one JSON object per app or service with no name in it, so the objects cannot be
+  told apart reliably. The text sections name each target. Single-target commands in later milestones use
+  `--format json` where the probe allows it, as DESIGN 3.3 says.
+- **Alternatives:** one `--format json` command per app (breaks `NFR-2`); pairing JSON lines with a separate
+  `apps:list` (races with apps created or destroyed between the two calls).
+
+## 2026-10-30: Name rules follow Dokku's source
+
+- **Decision:** app names are `^[a-z0-9][a-z0-9.-]*$` (Dokku 0.38 `IsValidAppName`) and service names
+  `^[A-Za-z0-9_][A-Za-z0-9_-]*$` (dokku-datastore `ValidateServiceName`, minus a leading dash, which a command
+  would read as a flag). Migration `00002_dokku_name_rules.sql` rebuilds `project_apps` and
+  `project_services` with matching CHECK constraints.
+- **Reason:** `00001` allowed underscores in app names, which Dokku rejects, and refused dots and upper case,
+  which Dokku accepts, so some real apps and services could not join a project.
+
+## 2026-10-30: A locked app counts as deploying
+
+- **Decision:** the status derivation (DESIGN 3.4, `APP-2`) also reports `deploying` while `apps:report` says
+  the app is locked.
+- **Reason:** Dokku holds the app lock for the length of a deploy, including a `git push` that Gokku did not
+  start and cannot see as a job. Without this, a push in progress shows as running.
+
+## 2026-10-30: Datastore plugins 2.6.0 or later, read with one bulk command
+
+- **Decision:** Gokku queries a datastore plugin only when `plugin:list` reports version 2.6.0 or later; older
+  versions are listed on the Plugins screen as not usable, with the update command (`CMD-2`).
+- **Reason:** from 2.6.0 the official datastore plugins share the dokku-datastore binary, whose `info` command
+  reports every service when no name is given (`NFR-2`). Older shell versions need one `info` per service.
+  See docs/COMPATIBILITY.md.
+
+## 2026-10-30: Server, events and plugin routes use existing actions
+
+- **Decision:** `GET /server` and `GET /plugins` require `plugin.view`, `GET /events` requires `app.view`,
+  `POST /server/rescan` requires `server.rescan`. All are viewer actions except rescan (admin).
+- **Reason:** SPEC section 3 has no `server.view` or `events` action. Every signed-in user needs the server
+  status for the shell, and the events stream carries only names of changed objects, never their data.
+
+## 2026-10-30: The fake runner fails through a file
+
+- **Decision:** with `GOKKU_RUNNER=fake`, every command fails like an unreachable Dokku while
+  `<data dir>/fake-fail` exists; the file's content is the error (default `sudo: a password is required`).
+  On first start the fake mode also seeds the mockup's three projects and one failed deploy job.
+- **Reason:** the M2 acceptance criteria ask for the unreachable state "when the fake runner is told to
+  fail". A file needs no API route (which `PERM-1` would have to cover) and works from Playwright.
+
+## 2026-10-30: Project settings and shared variables stay in M4
+
+- **Decision:** M2 ships project create, read, membership and the update and delete API (`PRJ-1`), but the
+  project Settings tab (rename, delete) is built with the rest of project settings in M4. Deleting a project
+  does not touch app config yet; managed variables only exist from M4, where `PRJ-4` and `SHV-2` complete it.
+- **Reason:** SPEC section 11 lists "project settings and deletion" under M4.

@@ -96,6 +96,9 @@ func (a *API) updateUser(w http.ResponseWriter, r *http.Request) error {
 			record(audit.ResultFail)
 			return err
 		}
+		if *req.Status == UpdateUserRequestStatusDisabled {
+			a.hub.CloseUser(before.ID) // EVT-2
+		}
 	}
 	record(audit.ResultOK)
 
@@ -126,6 +129,7 @@ func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	a.audit.Record(ctx, p, entry)
+	a.hub.CloseUser(u.ID) // EVT-2
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }

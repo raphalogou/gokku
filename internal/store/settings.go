@@ -15,6 +15,8 @@ const (
 	SettingSecretKeyFingerprint = "secret_key_fingerprint"
 	SettingJobRetentionDays     = "job_retention_days"
 	SettingProtectedApps        = "protected_apps"
+	// SettingFakeSeeded marks a database seeded for GOKKU_RUNNER=fake.
+	SettingFakeSeeded = "fake_seeded"
 )
 
 // Setting returns the value of key and whether it is set.

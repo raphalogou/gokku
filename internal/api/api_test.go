@@ -8,15 +8,20 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 
 	"gokku/internal/audit"
 	"gokku/internal/auth"
+	"gokku/internal/dokku"
+	"gokku/internal/events"
+	"gokku/internal/snapshot"
 	"gokku/internal/store"
 )
 
@@ -28,6 +33,9 @@ type env struct {
 	db    *store.DB
 	srv   *httptest.Server
 	https bool
+	fake  *dokku.FakeRunner
+	snap  *snapshot.Refresher
+	hub   *events.Hub
 }
 
 func newEnv(t *testing.T) *env {
@@ -42,11 +50,23 @@ func newEnv(t *testing.T) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, err := New(Options{Auth: svc, DB: db, Audit: audit.New(db, log), Log: log})
+	fake := dokku.NewFakeRunner(time.Now())
+	fake.FailFile = filepath.Join(t.TempDir(), "fail")
+	hub := events.NewHub()
+	snap := snapshot.New(snapshot.Options{
+		Client: dokku.NewClient(fake, log), Hub: hub, Log: log, Activity: snapshot.StoreActivity(db),
+	})
+	if err := snap.Refresh(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	a, err := New(Options{
+		Auth: svc, DB: db, Audit: audit.New(db, log), Log: log, Snapshot: snap, Hub: hub,
+		ServerName: "dokku-01", Heartbeat: 50 * time.Millisecond,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := &env{t: t, api: a, db: db}
+	e := &env{t: t, api: a, db: db, fake: fake, snap: snap, hub: hub}
 	root := chi.NewRouter()
 	root.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
