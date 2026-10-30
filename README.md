@@ -90,6 +90,16 @@ task build    # one binary with the web app embedded
 Install [Task](https://taskfile.dev) first, or use `go tool task <name>` (it is pinned in `go.mod`). Run `task`
 to list every task.
 
+Running `./bin/gokku serve` on its own uses the real runner, so without Dokku it reports "Cannot reach Dokku".
+To try the real runner anyway, use the stand-in `dokku` binary, which answers from the same seeded data:
+
+```
+task serve:fake-dokku   # http://127.0.0.1:8080, data in .dev-data/
+```
+
+While `bin/fake-dokku.fail` exists, every call fails as an unreachable Dokku would, with the file's content as
+the error. Delete it and press Retry to recover.
+
 `task e2e` uses the Chromium that `task setup` downloads. To use a browser already on your system instead, set
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`, for example `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium task e2e`.
 

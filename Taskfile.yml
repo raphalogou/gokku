@@ -29,7 +29,21 @@ tasks:
       GOKKU_RUNNER: fake
       GOKKU_LOG_LEVEL: debug
     cmds:
-      - go run ./cmd/gokku serve
+      - go run ./cmd/gokku serve --data-dir .dev-data
+
+  fake-dokku:
+    desc: "Build bin/fake-dokku, a stand-in dokku binary for trying the exec runner without Dokku"
+    cmds:
+      - go build -o bin/fake-dokku ./cmd/fake-dokku
+
+  serve:fake-dokku:
+    desc: "Build Gokku and bin/fake-dokku, then serve on 127.0.0.1:8080 with the exec runner calling it"
+    deps: [build, fake-dokku]
+    env:
+      GOKKU_DOKKU_BIN: "{{.ROOT_DIR}}/bin/fake-dokku"
+      GOKKU_DOKKU_SUDO: "false"
+    cmds:
+      - ./bin/gokku serve --data-dir .dev-data
 
   dev:web:
     internal: true
