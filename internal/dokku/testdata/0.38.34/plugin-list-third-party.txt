@@ -1,0 +1,10 @@
+plugn: dev
+  00_dokku-standard    0.38.34 enabled    dokku core standard plugin
+  20_events            0.38.34 enabled    dokku core events logging plugin
+  app-json             0.38.34 enabled    dokku core app-json plugin
+  apps                 0.38.34 enabled    dokku core apps plugin
+  build-env            0.38.34 enabled    dokku core build-env plugin
+  letsencrypt          0.22.1 enabled    Automated installation of let's encrypt TLS certificates
+  postgres             2.6.0 enabled    dokku postgres service plugin
+  redis                1.40.0 enabled    dokku redis service plugin
+  mysql                2.6.0 disabled   dokku mysql service plugin

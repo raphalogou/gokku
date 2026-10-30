@@ -1,0 +1,70 @@
+=====> api.v2 ps information
+       Deployed:                         false
+       Processes:                        0
+       Ps can scale:                     true
+       Ps computed dockerfile start cmd: 
+       Ps computed procfile path:        Procfile
+       Ps computed restart policy:       on-failure:10
+       Ps computed skip deploy:          false
+       Ps computed start cmd:            
+       Ps computed stop timeout seconds: 30
+       Ps dockerfile start cmd:          
+       Ps global procfile path:          Procfile
+       Ps global restart policy:         
+       Ps global skip deploy:            
+       Ps global stop timeout seconds:   
+       Ps procfile path:                 
+       Ps restart policy:                
+       Ps skip deploy:                   
+       Ps start cmd:                     
+       Ps stop timeout seconds:          
+       Restore:                          true
+       Running:                          false
+=====> blog-api ps information
+       Deployed:                         true
+       Processes:                        3
+       Ps can scale:                     true
+       Ps computed dockerfile start cmd: 
+       Ps computed procfile path:        Procfile
+       Ps computed restart policy:       on-failure:10
+       Ps computed skip deploy:          false
+       Ps computed start cmd:            
+       Ps computed stop timeout seconds: 30
+       Ps dockerfile start cmd:          
+       Ps global procfile path:          Procfile
+       Ps global restart policy:         
+       Ps global skip deploy:            
+       Ps global stop timeout seconds:   
+       Ps procfile path:                 
+       Ps restart policy:                
+       Ps skip deploy:                   
+       Ps start cmd:                     
+       Ps stop timeout seconds:          
+       Restore:                          true
+       Running:                          true
+       Status web 1:                     running (CID: 4f2a9c1e7b3)
+       Status web 2:                     running (CID: 9b8e7d6c5a4)
+       Status worker 1:                  running (CID: 1a2b3c4d5e6)
+=====> staging-web ps information
+       Deployed:                         true
+       Processes:                        1
+       Ps can scale:                     true
+       Ps computed dockerfile start cmd: 
+       Ps computed procfile path:        Procfile
+       Ps computed restart policy:       on-failure:10
+       Ps computed skip deploy:          false
+       Ps computed start cmd:            
+       Ps computed stop timeout seconds: 30
+       Ps dockerfile start cmd:          
+       Ps global procfile path:          Procfile
+       Ps global restart policy:         
+       Ps global skip deploy:            
+       Ps global stop timeout seconds:   
+       Ps procfile path:                 
+       Ps restart policy:                
+       Ps skip deploy:                   
+       Ps start cmd:                     
+       Ps stop timeout seconds:          
+       Restore:                          false
+       Running:                          false
+       Status web 1:                     exited (CID: 77aa88bb99c)

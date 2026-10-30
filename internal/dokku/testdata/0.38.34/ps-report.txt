@@ -1,0 +1,36 @@
+=====> node-js-app ps information
+       Deployed:                      false
+       Processes:                     0
+       Ps can scale:                  true
+       Ps computed procfile path:     Procfile2
+       Ps computed restart policy:    on-failure:10
+       Ps global procfile path:       Procfile
+       Ps global restart policy:
+       Ps restart policy:
+       Ps procfile path:              Procfile2
+       Restore:                       true
+       Running:                       false
+=====> python-sample ps information
+       Deployed:                      false
+       Processes:                     0
+       Ps can scale:                  true
+       Ps computed procfile path:     Procfile
+       Ps computed restart policy:    on-failure:10
+       Ps global procfile path:       Procfile
+       Ps global restart policy:
+       Ps restart policy:
+       Ps procfile path:
+       Restore:                       true
+       Running:                       false
+=====> ruby-sample ps information
+       Deployed:                      false
+       Processes:                     0
+       Ps can scale:                  true
+       Ps computed procfile path:     Procfile
+       Ps computed restart policy:    on-failure:10
+       Ps global procfile path:       Procfile
+       Ps global restart policy:
+       Ps restart policy:
+       Ps procfile path:
+       Restore:                       true
+       Running:                       false

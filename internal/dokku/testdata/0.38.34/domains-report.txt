@@ -1,0 +1,15 @@
+=====> node-js-app domains information
+       Domains app enabled: true
+       Domains app vhosts:  node-js-app.dokku.org
+       Domains global enabled: true
+       Domains global vhosts: dokku.org
+=====> python-app domains information
+       Domains app enabled: true
+       Domains app vhosts:  python-app.dokku.org
+       Domains global enabled: true
+       Domains global vhosts: dokku.org
+=====> ruby-app domains information
+       Domains app enabled: true
+       Domains app vhosts:  ruby-app.dokku.org
+       Domains global enabled: true
+       Domains global vhosts: dokku.org

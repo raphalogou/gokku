@@ -1,0 +1,15 @@
+=====> node-js-app git information
+       Git computed archive max files: 10000
+       Git computed archive max size:  1073741824
+       Git computed deploy branch:    master
+       Git computed keep git dir:     false
+       Git deploy branch:
+       Git global archive max files:
+       Git global archive max size:
+       Git global deploy branch:
+       Git global keep git dir:
+       Git keep git dir:
+       Git rev env var:               GIT_REV
+       Git sha:                       a1b2c3d
+       Git source image:
+       Git last updated at:           1700000000

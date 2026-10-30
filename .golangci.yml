@@ -10,10 +10,10 @@ linters:
     - nolintlint
   exclusions:
     rules:
-      # Tests are full of fixture passwords and tokens.
+      # Tests are full of fixture passwords and tokens, and read fixture files by name.
       - path: _test\.go
         linters: [gosec]
-        text: G101
+        text: G101|G304
 
 formatters:
   enable:

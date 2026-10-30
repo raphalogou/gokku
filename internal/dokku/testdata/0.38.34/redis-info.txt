@@ -1,0 +1,118 @@
+=====> blog-cache redis information
+       Backend:                              docker
+       Backup access key id fingerprint:     
+       Backup auth fingerprint:              
+       Backup authenticated:                 false
+       Backup bucket:                        
+       Backup default region:                
+       Backup encrypted:                     false
+       Backup encryption fingerprint:        
+       Backup endpoint url:                  
+       Backup keyserver:                     
+       Backup mailto:                        
+       Backup object name:                   
+       Backup public key id:                 
+       Backup schedule:                      
+       Backup schedules:                     
+       Backup secret access key fingerprint: 
+       Backup signature version:             
+       Backup storage class:                 
+       Backup timestamp:                     false
+       Backup use iam:                       false
+       Config dir:                           /var/lib/dokku/services/redis/blog-cache/config
+       Config options:                       
+       Custom env:                           
+       Data dir:                             /var/lib/dokku/services/redis/blog-cache/data
+       Database name:                        
+       Definition:                           
+       Dsn:                                  redis://:not-a-real-password@dokku-redis-blog-cache:6379
+       Export args:                          
+       Expose host:                          
+       Expose mode:                          ambassador
+       Exposed dsn:                          
+       Exposed ports:                        
+       Id:                                   e1d2c3b4a5f6e7d8c9b0
+       Image:                                redis
+       Image version:                        7.4-alpine
+       Import args:                          
+       Initial network:                      
+       Internal ip:                          172.17.0.4
+       Links:                                blog-api,worker-queue
+       Log driver:                           
+       Log opt:                              
+       Memory:                               
+       Mounts:                               
+       Password fingerprint:                 
+       Port bind address:                    
+       Port source range:                    
+       Post create network:                  
+       Post start network:                   
+       Restart policy:                       unless-stopped
+       Root password fingerprint:            
+       Service:                              blog-cache
+       Service memory:                       
+       Service root:                         /var/lib/dokku/services/redis/blog-cache
+       Shm size:                             
+       Status:                               running
+       Version:                              redis:7.4-alpine
+       Volume targets:                       
+       Wait timeout:                         60
+=====> spare_Cache redis information
+       Backend:                              docker
+       Backup access key id fingerprint:     
+       Backup auth fingerprint:              
+       Backup authenticated:                 false
+       Backup bucket:                        
+       Backup default region:                
+       Backup encrypted:                     false
+       Backup encryption fingerprint:        
+       Backup endpoint url:                  
+       Backup keyserver:                     
+       Backup mailto:                        
+       Backup object name:                   
+       Backup public key id:                 
+       Backup schedule:                      
+       Backup schedules:                     
+       Backup secret access key fingerprint: 
+       Backup signature version:             
+       Backup storage class:                 
+       Backup timestamp:                     false
+       Backup use iam:                       false
+       Config dir:                           /var/lib/dokku/services/redis/spare_Cache/config
+       Config options:                       
+       Custom env:                           
+       Data dir:                             /var/lib/dokku/services/redis/spare_Cache/data
+       Database name:                        
+       Definition:                           
+       Dsn:                                  redis://:not-a-real-password@dokku-redis-spare_Cache:6379
+       Export args:                          
+       Expose host:                          
+       Expose mode:                          ambassador
+       Exposed dsn:                          
+       Exposed ports:                        
+       Id:                                   e1d2c3b4a5f6e7d8c9b0
+       Image:                                redis
+       Image version:                        7.4-alpine
+       Import args:                          
+       Initial network:                      
+       Internal ip:                          172.17.0.4
+       Links:                                
+       Log driver:                           
+       Log opt:                              
+       Memory:                               
+       Mounts:                               
+       Password fingerprint:                 
+       Port bind address:                    
+       Port source range:                    
+       Post create network:                  
+       Post start network:                   
+       Restart policy:                       unless-stopped
+       Root password fingerprint:            
+       Service:                              spare_Cache
+       Service memory:                       
+       Service root:                         /var/lib/dokku/services/redis/spare_Cache
+       Shm size:                             
+       Status:                               exited
+       Version:                              redis:7.4-alpine
+       Volume targets:                       
+       Wait timeout:                         60

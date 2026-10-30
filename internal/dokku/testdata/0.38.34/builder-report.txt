@@ -1,0 +1,21 @@
+=====> node-js-app builder information
+       Builder build dir:          custom
+       Builder computed build dir: custom
+       Builder computed selected:  herokuish
+       Builder global build dir:
+       Builder global selected: herokuish
+       Builder selected: herokuish
+=====> python-sample builder information
+       Builder build dir:
+       Builder computed build dir:
+       Builder computed selected: dockerfile
+       Builder global build dir:
+       Builder global selected: herokuish
+       Builder selected: dockerfile
+=====> ruby-sample builder information
+       Builder build dir:
+       Builder computed build dir:
+       Builder computed selected: herokuish
+       Builder global build dir:
+       Builder global selected: herokuish
+       Builder selected:

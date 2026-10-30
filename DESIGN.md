@@ -41,7 +41,7 @@ gokku/
 |  |- dokku/                   Runner interface, validators, typed commands, parsers
 |  |  |- exec.go fake.go       ExecRunner and FakeRunner
 |  |  |- apps.go config.go domains.go ps.go logs.go deploy.go letsencrypt.go plugins.go
-|  |  |- datastore/            one generic client for all datastore plugins
+|  |  |- datastore.go          one generic client for all datastore plugins
 |  |  '- testdata/             golden fixtures of real output, per Dokku version
 |  |- snapshot/                state types, refresher, diffing, status derivation
 |  |- jobs/                    manager, per-app locks, workers, log writer, retention
