@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Database, FolderMinus } from "lucide-react";
+import { Link } from "react-router";
 import { Card, CardHeader } from "~/components/app/card";
 import { ChipList } from "~/components/app/chip";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
@@ -7,8 +8,9 @@ import { useProjectContext, useRemoveMember } from "~/components/app/project-mem
 import { RowMenu } from "~/components/app/row-menu";
 import { EmptyState } from "~/components/app/states";
 import { StatusPill } from "~/components/app/status-pill";
-import { Button } from "~/components/ui/button";
+import { Button, buttonVariants } from "~/components/ui/button";
 import { MenuItem } from "~/components/ui/menu";
+import { useCan } from "~/hooks/use-can";
 import { projectQuery } from "~/lib/queries";
 import { datastoreName, serviceStatusKind } from "~/lib/status";
 import { strings } from "~/lib/strings";
@@ -18,6 +20,7 @@ export default function ProjectServices({ params }: Route.ComponentProps) {
   const { data: p } = useSuspenseQuery(projectQuery(params.slug));
   const { openAdd } = useProjectContext();
   const remove = useRemoveMember(p.slug);
+  const canCreate = useCan("service.create");
   const t = strings.project;
 
   return (
@@ -26,16 +29,26 @@ export default function ProjectServices({ params }: Route.ComponentProps) {
         <CardHeader
           title={t.servicesInProject}
           actions={
-            openAdd ? (
-              <Button variant="secondary" onClick={() => openAdd("service")}>
-                {t.addService}
-              </Button>
-            ) : null
+            <>
+              {openAdd ? (
+                <Button variant="secondary" onClick={() => openAdd("service")}>
+                  {t.addService}
+                </Button>
+              ) : null}
+              {canCreate ? (
+                <Link
+                  to={`/services/new?project=${p.slug}`}
+                  className={buttonVariants({ variant: "secondary" })}
+                >
+                  {strings.services.create}
+                </Link>
+              ) : null}
+            </>
           }
         />
         {p.services.length === 0 ? (
           <EmptyState icon={Database} title={t.emptyServicesTitle}>
-            {t.emptyServicesBody}
+            {canCreate ? t.emptyServicesBodyCreate : t.emptyServicesBody}
           </EmptyState>
         ) : (
           <DataTable label={t.servicesInProject} className="min-w-[600px]">
@@ -53,7 +66,11 @@ export default function ProjectServices({ params }: Route.ComponentProps) {
             <tbody>
               {p.services.map((s) => (
                 <TR key={`${s.type}/${s.name}`}>
-                  <TD className="font-semibold">{s.name}</TD>
+                  <TD>
+                    <Link to={`/services/${s.type}/${s.name}`} className="font-semibold hover:underline">
+                      {s.name}
+                    </Link>
+                  </TD>
                   <TD>{datastoreName(s.type)}</TD>
                   <TD>
                     <StatusPill kind={serviceStatusKind[s.status]} label={strings.serviceStatus[s.status]} />

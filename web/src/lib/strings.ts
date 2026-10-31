@@ -290,6 +290,7 @@ export const strings = {
     emptyAppsBody: "Move an existing app into this project.",
     emptyServicesTitle: "No services yet",
     emptyServicesBody: "Add a datastore that is already on the server.",
+    emptyServicesBodyCreate: "Add a datastore that is already on the server, or create one in this project.",
     serviceNote: "A service belongs to one project. Apps in other projects cannot link to it.",
     appsInProject: "Apps in this project",
     servicesInProject: "Services in this project",
