@@ -5,9 +5,7 @@ import { EmptyState } from "~/components/app/states";
 import { strings } from "~/lib/strings";
 
 const titles: Record<string, string> = {
-  "project-settings": strings.project.tabs.settings,
   "app-deploy": strings.app.tabs.deploy,
-  "app-settings": strings.app.tabs.settings,
 };
 
 /** Placeholder for a project or app tab of a later milestone. */

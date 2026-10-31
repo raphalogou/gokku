@@ -48,8 +48,7 @@ func (a *API) appAction(action string) HandlerFunc {
 				return err
 			}
 			if protected[name] {
-				return newError(http.StatusConflict, ErrorCodeAppProtected,
-					"This app is protected. Remove it from the protected apps in Settings first.")
+				return errAppProtected
 			}
 		}
 

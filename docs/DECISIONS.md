@@ -205,3 +205,13 @@ One entry per decision: date, decision, reason, alternatives.
   outside Gokku are not seen.
 - **SSL-3:** the DNS reminder names `GOKKU_DOKKU_HOST`, or the host the browser used, as the A record
   target; Gokku does not know the server's public address otherwise.
+
+## 2026-10-31: App management
+
+- **Decision:** `apps:destroy --force <app>`, not `apps:destroy <app> --force` as SPEC section 6 lists:
+  Dokku 0.38 parses `apps:destroy` flags with Go's `flag` package, which stops at the first argument.
+  `PATCH /apps/{name}` takes either a new name (APP-4, a job, since Dokku redeploys) or a project slug
+  (APP-7), not both; the route declares `app.rename` and a move also checks `app.move`, both admin.
+  Rename moves the membership, provenance, job and deploy rows to the new name. Create (APP-3) puts the
+  app in its project and applies the project's shared variables; the intended source is returned for the
+  next steps and not stored. Stop, rebuild, rename, move and destroy are refused for protected apps (SET-2).

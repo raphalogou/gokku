@@ -73,6 +73,27 @@ func (e ActivityEntrySource) Valid() bool {
 	}
 }
 
+// Defines values for AppSource.
+const (
+	AppSourceGit        AppSource = "git"
+	AppSourceImage      AppSource = "image"
+	AppSourceRepository AppSource = "repository"
+)
+
+// Valid indicates whether the value is a known member of the AppSource enum.
+func (e AppSource) Valid() bool {
+	switch e {
+	case AppSourceGit:
+		return true
+	case AppSourceImage:
+		return true
+	case AppSourceRepository:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AppStatus.
 const (
 	AppStatusDeploying AppStatus = "deploying"
@@ -120,6 +141,7 @@ func (e EnvStatus) Valid() bool {
 
 // Defines values for ErrorCode.
 const (
+	ErrorCodeAppExists           ErrorCode = "app_exists"
 	ErrorCodeAppProtected        ErrorCode = "app_protected"
 	ErrorCodeCannotRevokeCurrent ErrorCode = "cannot_revoke_current"
 	ErrorCodeConfirmMismatch     ErrorCode = "confirm_mismatch"
@@ -152,6 +174,8 @@ const (
 // Valid indicates whether the value is a known member of the ErrorCode enum.
 func (e ErrorCode) Valid() bool {
 	switch e {
+	case ErrorCodeAppExists:
+		return true
 	case ErrorCodeAppProtected:
 		return true
 	case ErrorCodeCannotRevokeCurrent:
@@ -624,6 +648,20 @@ type AppConfig struct {
 	Vars []ConfigVar `json:"vars"`
 }
 
+// AppCreated defines model for AppCreated.
+type AppCreated struct {
+	App AppSummary `json:"app"`
+
+	// GitRemote dokku@<host>:<app>
+	GitRemote string `json:"git_remote"`
+
+	// JobId Applies the project's shared variables
+	JobId *string `json:"job_id,omitempty"`
+
+	// Source How the app will be deployed: git push, a Docker image or a Git repository URL
+	Source AppSource `json:"source"`
+}
+
 // AppDetail defines model for AppDetail.
 type AppDetail struct {
 	Builder   string     `json:"builder"`
@@ -671,6 +709,9 @@ type AppScale struct {
 	CanScale  bool           `json:"can_scale"`
 	Processes []ProcessScale `json:"processes"`
 }
+
+// AppSource How the app will be deployed: git push, a Docker image or a Git repository URL
+type AppSource string
 
 // AppState defines model for AppState.
 type AppState struct {
@@ -752,6 +793,17 @@ type ConfigVar struct {
 
 	// Value Absent when masked
 	Value *string `json:"value,omitempty"`
+}
+
+// CreateAppRequest defines model for CreateAppRequest.
+type CreateAppRequest struct {
+	Name string `json:"name"`
+
+	// Project Project slug
+	Project string `json:"project"`
+
+	// Source How the app will be deployed: git push, a Docker image or a Git repository URL
+	Source AppSource `json:"source"`
 }
 
 // CreateProjectRequest defines model for CreateProjectRequest.
@@ -1218,6 +1270,15 @@ type TokenCreated struct {
 	Token  Token  `json:"token"`
 }
 
+// UpdateAppRequest defines model for UpdateAppRequest.
+type UpdateAppRequest struct {
+	// Name The new name
+	Name *string `json:"name,omitempty"`
+
+	// Project The slug of the project to move the app to
+	Project *string `json:"project,omitempty"`
+}
+
 // UpdateConfigRequest defines model for UpdateConfigRequest.
 type UpdateConfigRequest struct {
 	// Restart Restart the app once after writing
@@ -1271,6 +1332,12 @@ type UserStatus string
 
 // Username Lowercase letters, digits, dash and underscore; starts with a letter or digit (USR-1)
 type Username = string
+
+// DestroyAppParams defines parameters for DestroyApp.
+type DestroyAppParams struct {
+	// Confirm Must equal the app name
+	Confirm string `form:"confirm" json:"confirm"`
+}
 
 // RemoveAppDomainParams defines parameters for RemoveAppDomain.
 type RemoveAppDomainParams struct {
@@ -1349,6 +1416,12 @@ type DeleteProjectParams struct {
 	// Confirm Must equal the slug
 	Confirm string `form:"confirm" json:"confirm"`
 }
+
+// CreateAppJSONRequestBody defines body for CreateApp for application/json ContentType.
+type CreateAppJSONRequestBody = CreateAppRequest
+
+// UpdateAppJSONRequestBody defines body for UpdateApp for application/json ContentType.
+type UpdateAppJSONRequestBody = UpdateAppRequest
 
 // UpdateAppConfigJSONRequestBody defines body for UpdateAppConfig for application/json ContentType.
 type UpdateAppConfigJSONRequestBody = UpdateConfigRequest

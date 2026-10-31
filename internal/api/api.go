@@ -140,7 +140,11 @@ func (a *API) register(r *router) {
 	r.Route(http.MethodDelete, "/projects/{slug}/services/{type}/{name}", authz.ProjectMembersWrite, a.removeProjectService)
 
 	r.Route(http.MethodGet, "/apps", authz.AppView, a.listApps)
+	r.Route(http.MethodPost, "/apps", authz.AppCreate, a.createApp)
 	r.Route(http.MethodGet, "/apps/{name}", authz.AppView, a.getApp)
+	// Rename and move are both admin actions; a move also checks app.move.
+	r.Route(http.MethodPatch, "/apps/{name}", authz.AppRename, a.updateApp)
+	r.Route(http.MethodDelete, "/apps/{name}", authz.AppDestroy, a.destroyApp)
 	for _, action := range []string{dokku.ActionRestart, dokku.ActionStop, dokku.ActionStart, dokku.ActionRebuild} {
 		r.Route(http.MethodPost, "/apps/{name}/actions/"+action, authz.AppOperate, a.appAction(action))
 	}

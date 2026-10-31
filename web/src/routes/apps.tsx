@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Boxes, ExternalLink, FolderKanban } from "lucide-react";
+import { Boxes, ExternalLink, FolderKanban, Plus } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, Outlet } from "react-router";
 import { Card, CardHeader } from "~/components/app/card";
 import { ChipList } from "~/components/app/chip";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
@@ -9,8 +9,10 @@ import { LastDeploy } from "~/components/app/last-deploy";
 import { PageHeader } from "~/components/app/page-header";
 import { EmptyState, Skeleton } from "~/components/app/states";
 import { StatusPill } from "~/components/app/status-pill";
+import { buttonVariants } from "~/components/ui/button";
 import { SearchInput } from "~/components/ui/search-input";
 import { Select } from "~/components/ui/select";
+import { useCan } from "~/hooks/use-can";
 import type { AppStatus, AppSummary } from "~/lib/api/gen/model";
 import { errorMessage } from "~/lib/forms";
 import { appsQuery, projectsQuery, serverQuery } from "~/lib/queries";
@@ -35,6 +37,7 @@ export default function Apps() {
   const { data: server } = useQuery(serverQuery());
   const [search, setSearch] = useState("");
   const [project, setProject] = useState(allProjects);
+  const canCreate = useCan("app.create");
   const t = strings.apps;
   const serverName = server?.name ?? "";
 
@@ -66,6 +69,12 @@ export default function Apps() {
               options={projectOptions}
               className="w-full sm:w-[200px]"
             />
+            {canCreate ? (
+              <Link to="/apps/new" className={buttonVariants()}>
+                <Plus aria-hidden />
+                {strings.newApp.title}
+              </Link>
+            ) : null}
           </>
         }
       />
@@ -105,6 +114,7 @@ export default function Apps() {
           <AppsTable apps={shown} />
         )}
       </Card>
+      <Outlet />
     </>
   );
 }

@@ -14,6 +14,7 @@
 import type {
   AcceptInviteRequest,
   AppConfig,
+  AppCreated,
   AppDetail,
   AppDomains,
   AppScale,
@@ -22,10 +23,12 @@ import type {
   AuditPage,
   ChangePasswordRequest,
   ConfigUpdated,
+  CreateAppRequest,
   CreateProjectRequest,
   CreateTokenRequest,
   Credentials,
   DeleteProjectParams,
+  DestroyAppParams,
   DomainRequest,
   ExportAuditParams,
   GetAppLogsParams,
@@ -59,6 +62,7 @@ import type {
   StreamJobParams,
   Token,
   TokenCreated,
+  UpdateAppRequest,
   UpdateConfigRequest,
   UpdateMeRequest,
   UpdateProjectRequest,
@@ -968,6 +972,44 @@ export const removeProjectService = async (slug: string,
 
 
 
+export const getCreateAppUrl = () => {
+
+
+
+
+  return `/api/v1/apps`
+}
+
+/**
+ * @summary Create an app in a project (APP-3)
+ */
+export const createApp = async (createAppRequest: CreateAppRequest, options?: Parameters<typeof apiFetch>[1]): Promise<AppCreated> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<AppCreated>(getCreateAppUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createAppRequest)
+  }
+);}
+
+
+
 export const getListAppsUrl = () => {
 
 
@@ -1006,6 +1048,78 @@ export const getApp = async (name: string, options?: Parameters<typeof apiFetch>
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getUpdateAppUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}`
+}
+
+/**
+ * @summary Rename the app (APP-4) or move it to another project (APP-7), one at a time
+ */
+export const updateApp = async (name: string,
+    updateAppRequest: UpdateAppRequest, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef | void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<JobRef | void>(getUpdateAppUrl(name),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateAppRequest)
+  }
+);}
+
+
+
+export const getDestroyAppUrl = (name: string,
+    params: DestroyAppParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/apps/${name}?${stringifiedParams}` : `/api/v1/apps/${name}`
+}
+
+/**
+ * @summary Destroy the app as a job; linked services are kept (APP-5)
+ */
+export const destroyApp = async (name: string,
+    params: DestroyAppParams, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getDestroyAppUrl(name,params),
+  {
+    ...options,
+    method: 'DELETE'
 
 
   }

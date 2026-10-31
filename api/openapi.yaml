@@ -495,6 +495,25 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
 
   /apps:
+    post:
+      operationId: createApp
+      tags: [apps]
+      summary: Create an app in a project (APP-3)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateAppRequest" }
+      responses:
+        "201":
+          description: Created; the response says how to push to it
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppCreated" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
     get:
       operationId: listApps
       tags: [apps]
@@ -521,6 +540,44 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AppDetail" }
         "404": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateApp
+      tags: [apps]
+      summary: "Rename the app (APP-4) or move it to another project (APP-7), one at a time"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateAppRequest" }
+      responses:
+        "202":
+          description: A job renames the app, or updates its shared variables after a move
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "204": { description: Moved; no shared variables to update }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: destroyApp
+      tags: [apps]
+      summary: "Destroy the app as a job; linked services are kept (APP-5)"
+      parameters:
+        - { name: confirm, in: query, required: true, schema: { type: string }, description: Must equal the app name }
+      responses:
+        "202":
+          description: The destroy job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
 
   /services:
     get:
@@ -1080,6 +1137,7 @@ components:
         - reserved_key
         - domain_exists
         - plugin_missing
+        - app_exists
         - internal
 
     Role:
@@ -1752,3 +1810,31 @@ components:
           type: object
           additionalProperties: { type: integer, minimum: 0, maximum: 100 }
           description: Instances per process type; only the types to change
+
+    AppSource:
+      type: string
+      enum: [git, image, repository]
+      description: "How the app will be deployed: git push, a Docker image or a Git repository URL"
+
+    CreateAppRequest:
+      type: object
+      required: [name, project, source]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 128, pattern: "^[a-z0-9][a-z0-9.-]*$" }
+        project: { type: string, description: Project slug }
+        source: { $ref: "#/components/schemas/AppSource" }
+
+    AppCreated:
+      type: object
+      required: [app, git_remote, source]
+      properties:
+        app: { $ref: "#/components/schemas/AppSummary" }
+        git_remote: { type: string, description: "dokku@<host>:<app>" }
+        source: { $ref: "#/components/schemas/AppSource" }
+        job_id: { type: string, nullable: true, description: Applies the project's shared variables }
+
+    UpdateAppRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 128, description: The new name }
+        project: { type: string, description: The slug of the project to move the app to }

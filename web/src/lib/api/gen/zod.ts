@@ -671,6 +671,44 @@ export const RemoveProjectServiceResponse = zod.void()
 
 
 /**
+ * @summary Create an app in a project (APP-3)
+ */
+export const createAppBodyNameMax = 128;
+
+
+export const createAppBodyNameRegExp = new RegExp('^[a-z0-9][a-z0-9.-]*$');
+
+
+export const CreateAppBody = zod.object({
+  "name": zod.string().min(1).max(createAppBodyNameMax).regex(createAppBodyNameRegExp),
+  "project": zod.string().describe('Project slug'),
+  "source": zod.enum(['git', 'image', 'repository']).describe('How the app will be deployed: git push, a Docker image or a Git repository URL')
+})
+
+export const CreateAppResponse = zod.object({
+  "app": zod.object({
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'deploying', 'failed']).describe('Derived as in DESIGN.md "Status derivation" (APP-2)'),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional().describe('Null when unassigned (PRJ-6)'),
+  "domains": zod.array(zod.string()),
+  "revision": zod.string().nullish().describe('Git sha of the deployed code'),
+  "deployed_at": zod.iso.datetime({"offset":true}).nullish(),
+  "deploy_source": zod.string().describe('Dokku\'s deploy source: git-push, docker-image, git-sync, or empty'),
+  "services": zod.array(zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+}))
+}),
+  "git_remote": zod.string().describe('dokku@<host>:<app>'),
+  "source": zod.enum(['git', 'image', 'repository']).describe('How the app will be deployed: git push, a Docker image or a Git repository URL'),
+  "job_id": zod.string().nullish().describe('Applies the project\'s shared variables')
+})
+
+
+/**
  * @summary Every app with status, project, domains, last deploy and linked services (APP-1)
  */
 export const ListAppsResponseItem = zod.object({
@@ -723,6 +761,43 @@ export const GetAppResponse = zod.object({
   "running": zod.int()
 }))
 }))
+
+
+/**
+ * @summary Rename the app (APP-4) or move it to another project (APP-7), one at a time
+ */
+export const UpdateAppParams = zod.object({
+  "name": zod.string()
+})
+
+export const updateAppBodyNameMax = 128;
+
+
+
+export const UpdateAppBody = zod.object({
+  "name": zod.string().min(1).max(updateAppBodyNameMax).optional().describe('The new name'),
+  "project": zod.string().optional().describe('The slug of the project to move the app to')
+})
+
+export const UpdateAppResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Destroy the app as a job; linked services are kept (APP-5)
+ */
+export const DestroyAppParams = zod.object({
+  "name": zod.string()
+})
+
+export const DestroyAppQueryParams = zod.object({
+  "confirm": zod.string().describe('Must equal the app name')
+})
+
+export const DestroyAppResponse = zod.object({
+  "job_id": zod.string()
+})
 
 
 /**
