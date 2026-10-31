@@ -26,14 +26,15 @@ type FakeRunner struct {
 	// FailRebuild lists apps whose ps:rebuild fails, as a broken build would.
 	FailRebuild map[string]bool
 
-	mu          sync.Mutex
-	autoRenew   bool   // letsencrypt cron job
-	globalEmail string // letsencrypt global email
-	version     string
-	plugins     []Plugin
-	apps        map[string]*fakeApp
-	services    map[string]*fakeService // key type/name
-	calls       []string
+	mu            sync.Mutex
+	autoRenew     bool   // letsencrypt cron job
+	globalEmail   string // letsencrypt global email
+	globalDomains []string
+	version       string
+	plugins       []Plugin
+	apps          map[string]*fakeApp
+	services      map[string]*fakeService // key type/name
+	calls         []string
 }
 
 type fakeApp struct {
@@ -119,6 +120,7 @@ func NewFakeRunner(now time.Time) *FakeRunner {
 	}
 	f.seedConfig()
 	f.autoRenew, f.globalEmail = true, "ops@example.com"
+	f.globalDomains = []string{"dokku-01.example.com"}
 	f.apps["blog-api"].ssl = fakeSSL{active: true, expires: ago(-61 * 24 * time.Hour)}
 	f.apps["storefront"].ssl = fakeSSL{active: true, expires: ago(-45 * 24 * time.Hour)}
 	return f
@@ -247,6 +249,9 @@ func (f *FakeRunner) command(args []string, stdin io.Reader) script {
 	if sc, ok := f.deployCommand(args); ok {
 		return sc
 	}
+	if sc, ok := f.serviceCommand(args); ok {
+		return sc
+	}
 	return failScript(fmt.Sprintf("fake runner: %s is not implemented", strings.Join(args, " ")))
 }
 
@@ -340,8 +345,8 @@ func (f *FakeRunner) appReport(cmd string) string {
 			fields = [][2]string{
 				{"Domains app enabled", strconv.FormatBool(len(a.domains) > 0)},
 				{"Domains app vhosts", strings.Join(a.domains, " ")},
-				{"Domains global enabled", "false"},
-				{"Domains global vhosts", ""},
+				{"Domains global enabled", strconv.FormatBool(len(f.globalDomains) > 0)},
+				{"Domains global vhosts", strings.Join(f.globalDomains, " ")},
 			}
 		case "git:report":
 			kind = "git"

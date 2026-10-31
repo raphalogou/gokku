@@ -1,0 +1,6 @@
+-----> Setting config vars
+       DATABASE_URL:  postgres://postgres:not-a-real-password@dokku-postgres-blog-db:5432/blog_db
+-----> Restarting app blog-api
+-----> Releasing blog-api...
+=====> Application deployed:
+       http://blog-api.example.com
