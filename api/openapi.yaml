@@ -22,6 +22,8 @@ tags:
   - name: projects
   - name: apps
   - name: services
+  - name: jobs
+  - name: audit
 
 paths:
   /setup/status:
@@ -516,6 +518,224 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/ServiceSummary" }
 
+  /apps/{name}/actions/restart:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: restartApp
+      tags: [apps]
+      summary: "Restart the app as a job (APP-6)"
+      responses:
+        "202":
+          description: The job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /apps/{name}/actions/stop:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: stopApp
+      tags: [apps]
+      summary: "Stop the app as a job (APP-6)"
+      responses:
+        "202":
+          description: The job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /apps/{name}/actions/start:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: startApp
+      tags: [apps]
+      summary: "Start the app as a job (APP-6)"
+      responses:
+        "202":
+          description: The job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /apps/{name}/actions/rebuild:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: rebuildApp
+      tags: [apps]
+      summary: "Rebuild the app as a job (APP-6)"
+      responses:
+        "202":
+          description: The job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /apps/{name}/logs:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getAppLogs
+      tags: [apps]
+      summary: The last lines of the app's output (LOG-1)
+      parameters:
+        - { name: lines, in: query, schema: { type: integer, enum: [100, 500, 1000], default: 100 } }
+        - { name: process, in: query, schema: { type: string }, description: "A process type (web) or container (web.1)" }
+      responses:
+        "200":
+          description: Log lines, oldest first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogTail" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /apps/{name}/logs/stream:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: streamAppLogs
+      tags: [apps]
+      summary: Follow the app's output over SSE (LOG-2, LOG-4)
+      description: |
+        Each `line` event carries a LogLine. One `dokku logs --tail` process runs per stream and
+        stops when the client disconnects. At most 5 streams per user and 20 in total (429).
+      parameters:
+        - { name: process, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: An open log stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      parameters:
+        - { name: app, in: query, schema: { type: string } }
+        - { name: project, in: query, schema: { type: string }, description: Project slug }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200":
+          description: Jobs, newest first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobPage" }
+
+  /jobs/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getJob
+      tags: [jobs]
+      responses:
+        "200":
+          description: The job with its steps
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobDetail" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /jobs/{id}/stream:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: streamJob
+      tags: [jobs]
+      summary: The job's output over SSE, resumable with Last-Event-ID (JOB-3)
+      description: |
+        `line` events have the line's seq as their id and a JobLine as data; `step` events carry a
+        JobStep, and a final `status` event the finished Job, after which the stream ends. Send
+        `Last-Event-ID` (or `?after=`) to resume after a seq.
+      parameters:
+        - { name: after, in: query, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: The job's output
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /jobs/{id}/cancel:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: cancelJob
+      tags: [jobs]
+      summary: Cancel a queued or running job (JOB-4)
+      responses:
+        "202": { description: Cancellation requested }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /audit:
+    get:
+      operationId: listAudit
+      tags: [audit]
+      summary: The audit log, filtered, newest first (ACT-2)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: user, in: query, schema: { type: string }, description: Actor name }
+        - { name: project, in: query, schema: { type: string }, description: Project slug }
+        - { name: result, in: query, schema: { type: string, enum: [ok, fail] } }
+        - { name: source, in: query, schema: { type: string, enum: [web, api, git, system] } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200":
+          description: One page of entries
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditPage" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /audit/export:
+    get:
+      operationId: exportAudit
+      tags: [audit]
+      summary: The filtered audit log as CSV (ACT-2)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: user, in: query, schema: { type: string } }
+        - { name: project, in: query, schema: { type: string } }
+        - { name: result, in: query, schema: { type: string, enum: [ok, fail] } }
+        - { name: source, in: query, schema: { type: string, enum: [web, api, git, system] } }
+      responses:
+        "200":
+          description: CSV with a header row
+          content:
+            text/csv:
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
 security:
   - session: []
   - bearer: []
@@ -575,6 +795,9 @@ components:
         - project_exists
         - confirm_mismatch
         - dokku_unreachable
+        - app_protected
+        - job_finished
+        - too_many_streams
         - internal
 
     Role:
@@ -897,8 +1120,10 @@ components:
 
     ActivityEntry:
       type: object
-      required: [id, ts, actor_name, actor_type, action, target_type, target_name, result, source]
+      required: [id, ts, actor_name, actor_type, action, target_type, target_name, project_slug, result, source]
       properties:
+        project_slug: { type: string, description: Empty when the entry belongs to no project }
+        job_id: { type: string, nullable: true }
         id: { type: integer, format: int64 }
         ts: { type: string, format: date-time }
         actor_name: { type: string }
@@ -952,3 +1177,106 @@ components:
       properties:
         name: { type: string, minLength: 1, maxLength: 80 }
         description: { type: string, maxLength: 500 }
+
+    JobStatus:
+      type: string
+      enum: [queued, running, succeeded, failed, canceled]
+
+    StepStatus:
+      type: string
+      enum: [queued, running, succeeded, failed, skipped, canceled]
+
+    JobRef:
+      type: object
+      required: [job_id]
+      properties:
+        job_id: { type: string }
+
+    Job:
+      type: object
+      required: [id, kind, title, status, source, created_at]
+      properties:
+        id: { type: string }
+        kind: { type: string, description: "app.restart, app.stop, app.start, app.rebuild, deploy.*" }
+        title: { type: string }
+        status: { $ref: "#/components/schemas/JobStatus" }
+        app: { type: string, nullable: true }
+        project: { allOf: [{ $ref: "#/components/schemas/ProjectRef" }], nullable: true }
+        creator: { type: string, nullable: true, description: Username of who started it }
+        source: { type: string, enum: [web, api, system] }
+        error: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time, nullable: true }
+        finished_at: { type: string, format: date-time, nullable: true }
+
+    JobStep:
+      type: object
+      required: [position, name, status]
+      properties:
+        position: { type: integer }
+        name: { type: string }
+        status: { $ref: "#/components/schemas/StepStatus" }
+        started_at: { type: string, format: date-time, nullable: true }
+        finished_at: { type: string, format: date-time, nullable: true }
+
+    JobDetail:
+      allOf:
+        - { $ref: "#/components/schemas/Job" }
+        - type: object
+          required: [steps]
+          properties:
+            steps:
+              type: array
+              items: { $ref: "#/components/schemas/JobStep" }
+
+    JobPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Job" }
+        next_cursor: { type: string, nullable: true }
+
+    JobLine:
+      type: object
+      required: [seq, ts, stream, text]
+      properties:
+        seq: { type: integer, format: int64 }
+        ts: { type: string, format: date-time }
+        stream: { type: string, enum: [stdout, stderr, system] }
+        text: { type: string }
+        step: { type: integer, nullable: true, description: Position of the step that printed it }
+
+    LogLine:
+      type: object
+      required: [text]
+      properties:
+        ts: { type: string, format: date-time, nullable: true }
+        process: { type: string, nullable: true, description: "Container, such as web.1" }
+        text: { type: string }
+
+    LogTail:
+      type: object
+      required: [lines, processes]
+      properties:
+        lines:
+          type: array
+          items: { $ref: "#/components/schemas/LogLine" }
+        processes:
+          type: array
+          items: { type: string }
+          description: "The app's containers, such as web.1, for the process filter"
+
+    AuditPage:
+      type: object
+      required: [items, actors]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityEntry" }
+        next_cursor: { type: string, nullable: true }
+        actors:
+          type: array
+          items: { type: string }
+          description: Every actor name in the log, for the user filter

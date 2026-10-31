@@ -104,8 +104,8 @@ func (a *API) projectDetail(r *http.Request, p store.Project) (ProjectDetail, er
 func toActivity(e store.AuditEntry) ActivityEntry {
 	return ActivityEntry{
 		Id: e.ID, Ts: e.TS.Time, ActorName: e.ActorName, ActorType: ActivityEntryActorType(e.ActorType),
-		Action: e.Action, TargetType: e.TargetType, TargetName: e.TargetName,
-		Result: ActivityEntryResult(e.Result), Source: ActivityEntrySource(e.Source),
+		Action: e.Action, TargetType: e.TargetType, TargetName: e.TargetName, ProjectSlug: e.ProjectSlug,
+		JobId: e.JobID, Result: ActivityEntryResult(e.Result), Source: ActivityEntrySource(e.Source),
 	}
 }
 

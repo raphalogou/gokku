@@ -11,7 +11,9 @@ import (
 	"gokku/internal/audit"
 	"gokku/internal/auth"
 	"gokku/internal/authz"
+	"gokku/internal/dokku"
 	"gokku/internal/events"
+	"gokku/internal/jobs"
 	"gokku/internal/snapshot"
 	"gokku/internal/store"
 )
@@ -26,6 +28,9 @@ type API struct {
 	log        *slog.Logger
 	snap       *snapshot.Refresher
 	hub        *events.Hub
+	jobs       *jobs.Manager
+	dokku      *dokku.Client
+	logStreams *streamLimiter
 	serverName string
 	dokkuHost  string
 	heartbeat  time.Duration
@@ -41,6 +46,8 @@ type Options struct {
 	Log      *slog.Logger
 	Snapshot *snapshot.Refresher
 	Hub      *events.Hub
+	Jobs     *jobs.Manager
+	Dokku    *dokku.Client
 	// ServerName is shown in the UI, for example the host name of the Dokku server.
 	ServerName string
 	// DokkuHost is the host in git remote instructions; empty means the request host.
@@ -53,6 +60,7 @@ type Options struct {
 func New(opts Options) (*API, error) {
 	a := &API{
 		auth: opts.Auth, db: opts.DB, audit: opts.Audit, log: opts.Log, snap: opts.Snapshot, hub: opts.Hub,
+		jobs: opts.Jobs, dokku: opts.Dokku, logStreams: newStreamLimiter(),
 		serverName: opts.ServerName, dokkuHost: opts.DokkuHost, heartbeat: opts.Heartbeat,
 	}
 	if a.heartbeat == 0 {
@@ -126,6 +134,19 @@ func (a *API) register(r *router) {
 
 	r.Route(http.MethodGet, "/apps", authz.AppView, a.listApps)
 	r.Route(http.MethodGet, "/apps/{name}", authz.AppView, a.getApp)
+	for _, action := range []string{dokku.ActionRestart, dokku.ActionStop, dokku.ActionStart, dokku.ActionRebuild} {
+		r.Route(http.MethodPost, "/apps/{name}/actions/"+action, authz.AppOperate, a.appAction(action))
+	}
+	r.Route(http.MethodGet, "/apps/{name}/logs", authz.AppLogsRead, a.getAppLogs)
+	r.Route(http.MethodGet, "/apps/{name}/logs/stream", authz.AppLogsRead, a.streamAppLogs)
+
+	r.Route(http.MethodGet, "/jobs", authz.JobView, a.listJobs)
+	r.Route(http.MethodGet, "/jobs/{id}", authz.JobView, a.getJob)
+	r.Route(http.MethodGet, "/jobs/{id}/stream", authz.JobView, a.streamJob)
+	r.Route(http.MethodPost, "/jobs/{id}/cancel", authz.JobCancel, a.cancelJob)
+
+	r.Route(http.MethodGet, "/audit", authz.AuditView, a.listAudit)
+	r.Route(http.MethodGet, "/audit/export", authz.AuditExport, a.exportAudit)
 
 	r.Route(http.MethodGet, "/services", authz.ServiceView, a.listServices)
 }

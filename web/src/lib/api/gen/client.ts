@@ -15,14 +15,23 @@ import type {
   AcceptInviteRequest,
   AppDetail,
   AppSummary,
+  AuditPage,
   ChangePasswordRequest,
   CreateProjectRequest,
   CreateTokenRequest,
   Credentials,
   DeleteProjectParams,
+  ExportAuditParams,
+  GetAppLogsParams,
   Invite,
   InviteCreated,
   InviteUserRequest,
+  JobDetail,
+  JobPage,
+  JobRef,
+  ListAuditParams,
+  ListJobsParams,
+  LogTail,
   Me,
   PluginList,
   ProjectDetail,
@@ -31,6 +40,8 @@ import type {
   ServiceSummary,
   Session,
   SetupStatus,
+  StreamAppLogsParams,
+  StreamJobParams,
   Token,
   TokenCreated,
   UpdateMeRequest,
@@ -997,6 +1008,341 @@ export const getListServicesUrl = () => {
 export const listServices = async ( options?: Parameters<typeof apiFetch>[1]): Promise<ServiceSummary[]> => {
 
   return apiFetch<ServiceSummary[]>(getListServicesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getRestartAppUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/actions/restart`
+}
+
+/**
+ * @summary Restart the app as a job (APP-6)
+ */
+export const restartApp = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getRestartAppUrl(name),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getStopAppUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/actions/stop`
+}
+
+/**
+ * @summary Stop the app as a job (APP-6)
+ */
+export const stopApp = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getStopAppUrl(name),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getStartAppUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/actions/start`
+}
+
+/**
+ * @summary Start the app as a job (APP-6)
+ */
+export const startApp = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getStartAppUrl(name),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getRebuildAppUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/actions/rebuild`
+}
+
+/**
+ * @summary Rebuild the app as a job (APP-6)
+ */
+export const rebuildApp = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getRebuildAppUrl(name),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getGetAppLogsUrl = (name: string,
+    params?: GetAppLogsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/apps/${name}/logs?${stringifiedParams}` : `/api/v1/apps/${name}/logs`
+}
+
+/**
+ * @summary The last lines of the app's output (LOG-1)
+ */
+export const getAppLogs = async (name: string,
+    params?: GetAppLogsParams, options?: Parameters<typeof apiFetch>[1]): Promise<LogTail> => {
+
+  return apiFetch<LogTail>(getGetAppLogsUrl(name,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getStreamAppLogsUrl = (name: string,
+    params?: StreamAppLogsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/apps/${name}/logs/stream?${stringifiedParams}` : `/api/v1/apps/${name}/logs/stream`
+}
+
+/**
+ * Each `line` event carries a LogLine. One `dokku logs --tail` process runs per stream and
+ * stops when the client disconnects. At most 5 streams per user and 20 in total (429).
+ * @summary Follow the app's output over SSE (LOG-2, LOG-4)
+ */
+export const streamAppLogs = async (name: string,
+    params?: StreamAppLogsParams, options?: Parameters<typeof apiFetch>[1]): Promise<string> => {
+
+  return apiFetch<string>(getStreamAppLogsUrl(name,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getListJobsUrl = (params?: ListJobsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/jobs?${stringifiedParams}` : `/api/v1/jobs`
+}
+
+export const listJobs = async (params?: ListJobsParams, options?: Parameters<typeof apiFetch>[1]): Promise<JobPage> => {
+
+  return apiFetch<JobPage>(getListJobsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getGetJobUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/jobs/${id}`
+}
+
+export const getJob = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobDetail> => {
+
+  return apiFetch<JobDetail>(getGetJobUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getStreamJobUrl = (id: string,
+    params?: StreamJobParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/jobs/${id}/stream?${stringifiedParams}` : `/api/v1/jobs/${id}/stream`
+}
+
+/**
+ * `line` events have the line's seq as their id and a JobLine as data; `step` events carry a
+ * JobStep, and a final `status` event the finished Job, after which the stream ends. Send
+ * `Last-Event-ID` (or `?after=`) to resume after a seq.
+ * @summary The job's output over SSE, resumable with Last-Event-ID (JOB-3)
+ */
+export const streamJob = async (id: string,
+    params?: StreamJobParams, options?: Parameters<typeof apiFetch>[1]): Promise<string> => {
+
+  return apiFetch<string>(getStreamJobUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getCancelJobUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/jobs/${id}/cancel`
+}
+
+/**
+ * @summary Cancel a queued or running job (JOB-4)
+ */
+export const cancelJob = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getCancelJobUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getListAuditUrl = (params?: ListAuditParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/audit?${stringifiedParams}` : `/api/v1/audit`
+}
+
+/**
+ * @summary The audit log, filtered, newest first (ACT-2)
+ */
+export const listAudit = async (params?: ListAuditParams, options?: Parameters<typeof apiFetch>[1]): Promise<AuditPage> => {
+
+  return apiFetch<AuditPage>(getListAuditUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getExportAuditUrl = (params?: ExportAuditParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/audit/export?${stringifiedParams}` : `/api/v1/audit/export`
+}
+
+/**
+ * @summary The filtered audit log as CSV (ACT-2)
+ */
+export const exportAudit = async (params?: ExportAuditParams, options?: Parameters<typeof apiFetch>[1]): Promise<string> => {
+
+  return apiFetch<string>(getExportAuditUrl(params),
   {
     ...options,
     method: 'GET'

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -60,6 +61,9 @@ func (rt *router) wrap(h HandlerFunc) http.HandlerFunc {
 		err := h(w, r)
 		if err == nil {
 			return
+		}
+		if errors.Is(err, context.Canceled) && r.Context().Err() != nil {
+			return // the client went away; nobody is listening for an answer
 		}
 		ae := toAPIError(err)
 		if ae.Status >= http.StatusInternalServerError {

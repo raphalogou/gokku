@@ -99,6 +99,7 @@ func (e AppStatus) Valid() bool {
 
 // Defines values for ErrorCode.
 const (
+	ErrorCodeAppProtected        ErrorCode = "app_protected"
 	ErrorCodeCannotRevokeCurrent ErrorCode = "cannot_revoke_current"
 	ErrorCodeConfirmMismatch     ErrorCode = "confirm_mismatch"
 	ErrorCodeCsrfFailed          ErrorCode = "csrf_failed"
@@ -107,6 +108,7 @@ const (
 	ErrorCodeInternal            ErrorCode = "internal"
 	ErrorCodeInvalidCredentials  ErrorCode = "invalid_credentials"
 	ErrorCodeInviteInvalid       ErrorCode = "invite_invalid"
+	ErrorCodeJobFinished         ErrorCode = "job_finished"
 	ErrorCodeLastAdmin           ErrorCode = "last_admin"
 	ErrorCodeMethodNotAllowed    ErrorCode = "method_not_allowed"
 	ErrorCodeNotFound            ErrorCode = "not_found"
@@ -115,6 +117,7 @@ const (
 	ErrorCodeRateLimited         ErrorCode = "rate_limited"
 	ErrorCodeSetupComplete       ErrorCode = "setup_complete"
 	ErrorCodeTokenNameTaken      ErrorCode = "token_name_taken"
+	ErrorCodeTooManyStreams      ErrorCode = "too_many_streams"
 	ErrorCodeUnauthorized        ErrorCode = "unauthorized"
 	ErrorCodeUsernameTaken       ErrorCode = "username_taken"
 	ErrorCodeValidationFailed    ErrorCode = "validation_failed"
@@ -124,6 +127,8 @@ const (
 // Valid indicates whether the value is a known member of the ErrorCode enum.
 func (e ErrorCode) Valid() bool {
 	switch e {
+	case ErrorCodeAppProtected:
+		return true
 	case ErrorCodeCannotRevokeCurrent:
 		return true
 	case ErrorCodeConfirmMismatch:
@@ -139,6 +144,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeInvalidCredentials:
 		return true
 	case ErrorCodeInviteInvalid:
+		return true
+	case ErrorCodeJobFinished:
 		return true
 	case ErrorCodeLastAdmin:
 		return true
@@ -156,6 +163,8 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeTokenNameTaken:
 		return true
+	case ErrorCodeTooManyStreams:
+		return true
 	case ErrorCodeUnauthorized:
 		return true
 	case ErrorCodeUsernameTaken:
@@ -163,6 +172,96 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeValidationFailed:
 		return true
 	case ErrorCodeWrongPassword:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobSource.
+const (
+	JobSourceApi    JobSource = "api"
+	JobSourceSystem JobSource = "system"
+	JobSourceWeb    JobSource = "web"
+)
+
+// Valid indicates whether the value is a known member of the JobSource enum.
+func (e JobSource) Valid() bool {
+	switch e {
+	case JobSourceApi:
+		return true
+	case JobSourceSystem:
+		return true
+	case JobSourceWeb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobDetailSource.
+const (
+	JobDetailSourceApi    JobDetailSource = "api"
+	JobDetailSourceSystem JobDetailSource = "system"
+	JobDetailSourceWeb    JobDetailSource = "web"
+)
+
+// Valid indicates whether the value is a known member of the JobDetailSource enum.
+func (e JobDetailSource) Valid() bool {
+	switch e {
+	case JobDetailSourceApi:
+		return true
+	case JobDetailSourceSystem:
+		return true
+	case JobDetailSourceWeb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobLineStream.
+const (
+	JobLineStreamStderr JobLineStream = "stderr"
+	JobLineStreamStdout JobLineStream = "stdout"
+	JobLineStreamSystem JobLineStream = "system"
+)
+
+// Valid indicates whether the value is a known member of the JobLineStream enum.
+func (e JobLineStream) Valid() bool {
+	switch e {
+	case JobLineStreamStderr:
+		return true
+	case JobLineStreamStdout:
+		return true
+	case JobLineStreamSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobStatus.
+const (
+	JobStatusCanceled  JobStatus = "canceled"
+	JobStatusFailed    JobStatus = "failed"
+	JobStatusQueued    JobStatus = "queued"
+	JobStatusRunning   JobStatus = "running"
+	JobStatusSucceeded JobStatus = "succeeded"
+)
+
+// Valid indicates whether the value is a known member of the JobStatus enum.
+func (e JobStatus) Valid() bool {
+	switch e {
+	case JobStatusCanceled:
+		return true
+	case JobStatusFailed:
+		return true
+	case JobStatusQueued:
+		return true
+	case JobStatusRunning:
+		return true
+	case JobStatusSucceeded:
 		return true
 	default:
 		return false
@@ -232,6 +331,36 @@ func (e ServiceStatus) Valid() bool {
 	}
 }
 
+// Defines values for StepStatus.
+const (
+	StepStatusCanceled  StepStatus = "canceled"
+	StepStatusFailed    StepStatus = "failed"
+	StepStatusQueued    StepStatus = "queued"
+	StepStatusRunning   StepStatus = "running"
+	StepStatusSkipped   StepStatus = "skipped"
+	StepStatusSucceeded StepStatus = "succeeded"
+)
+
+// Valid indicates whether the value is a known member of the StepStatus enum.
+func (e StepStatus) Valid() bool {
+	switch e {
+	case StepStatusCanceled:
+		return true
+	case StepStatusFailed:
+		return true
+	case StepStatusQueued:
+		return true
+	case StepStatusRunning:
+		return true
+	case StepStatusSkipped:
+		return true
+	case StepStatusSucceeded:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Theme.
 const (
 	ThemeDark   Theme = "dark"
@@ -292,6 +421,111 @@ func (e UserStatus) Valid() bool {
 	}
 }
 
+// Defines values for GetAppLogsParamsLines.
+const (
+	GetAppLogsParamsLinesN100  GetAppLogsParamsLines = 100
+	GetAppLogsParamsLinesN1000 GetAppLogsParamsLines = 1000
+	GetAppLogsParamsLinesN500  GetAppLogsParamsLines = 500
+)
+
+// Valid indicates whether the value is a known member of the GetAppLogsParamsLines enum.
+func (e GetAppLogsParamsLines) Valid() bool {
+	switch e {
+	case GetAppLogsParamsLinesN100:
+		return true
+	case GetAppLogsParamsLinesN1000:
+		return true
+	case GetAppLogsParamsLinesN500:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListAuditParamsResult.
+const (
+	ListAuditParamsResultFail ListAuditParamsResult = "fail"
+	ListAuditParamsResultOk   ListAuditParamsResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the ListAuditParamsResult enum.
+func (e ListAuditParamsResult) Valid() bool {
+	switch e {
+	case ListAuditParamsResultFail:
+		return true
+	case ListAuditParamsResultOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListAuditParamsSource.
+const (
+	ListAuditParamsSourceApi    ListAuditParamsSource = "api"
+	ListAuditParamsSourceGit    ListAuditParamsSource = "git"
+	ListAuditParamsSourceSystem ListAuditParamsSource = "system"
+	ListAuditParamsSourceWeb    ListAuditParamsSource = "web"
+)
+
+// Valid indicates whether the value is a known member of the ListAuditParamsSource enum.
+func (e ListAuditParamsSource) Valid() bool {
+	switch e {
+	case ListAuditParamsSourceApi:
+		return true
+	case ListAuditParamsSourceGit:
+		return true
+	case ListAuditParamsSourceSystem:
+		return true
+	case ListAuditParamsSourceWeb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportAuditParamsResult.
+const (
+	ExportAuditParamsResultFail ExportAuditParamsResult = "fail"
+	ExportAuditParamsResultOk   ExportAuditParamsResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the ExportAuditParamsResult enum.
+func (e ExportAuditParamsResult) Valid() bool {
+	switch e {
+	case ExportAuditParamsResultFail:
+		return true
+	case ExportAuditParamsResultOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportAuditParamsSource.
+const (
+	ExportAuditParamsSourceApi    ExportAuditParamsSource = "api"
+	ExportAuditParamsSourceGit    ExportAuditParamsSource = "git"
+	ExportAuditParamsSourceSystem ExportAuditParamsSource = "system"
+	ExportAuditParamsSourceWeb    ExportAuditParamsSource = "web"
+)
+
+// Valid indicates whether the value is a known member of the ExportAuditParamsSource enum.
+func (e ExportAuditParamsSource) Valid() bool {
+	switch e {
+	case ExportAuditParamsSourceApi:
+		return true
+	case ExportAuditParamsSourceGit:
+		return true
+	case ExportAuditParamsSourceSystem:
+		return true
+	case ExportAuditParamsSourceWeb:
+		return true
+	default:
+		return false
+	}
+}
+
 // AcceptInviteRequest defines model for AcceptInviteRequest.
 type AcceptInviteRequest struct {
 	// Password Minimum length is SetupStatus.min_password_length (AUTH-2)
@@ -301,15 +535,19 @@ type AcceptInviteRequest struct {
 
 // ActivityEntry defines model for ActivityEntry.
 type ActivityEntry struct {
-	Action     string                 `json:"action"`
-	ActorName  string                 `json:"actor_name"`
-	ActorType  ActivityEntryActorType `json:"actor_type"`
-	Id         int64                  `json:"id"`
-	Result     ActivityEntryResult    `json:"result"`
-	Source     ActivityEntrySource    `json:"source"`
-	TargetName string                 `json:"target_name"`
-	TargetType string                 `json:"target_type"`
-	Ts         time.Time              `json:"ts"`
+	Action    string                 `json:"action"`
+	ActorName string                 `json:"actor_name"`
+	ActorType ActivityEntryActorType `json:"actor_type"`
+	Id        int64                  `json:"id"`
+	JobId     *string                `json:"job_id,omitempty"`
+
+	// ProjectSlug Empty when the entry belongs to no project
+	ProjectSlug string              `json:"project_slug"`
+	Result      ActivityEntryResult `json:"result"`
+	Source      ActivityEntrySource `json:"source"`
+	TargetName  string              `json:"target_name"`
+	TargetType  string              `json:"target_type"`
+	Ts          time.Time           `json:"ts"`
 }
 
 // ActivityEntryActorType defines model for ActivityEntry.ActorType.
@@ -377,6 +615,14 @@ type AppSummary struct {
 
 	// Status Derived as in DESIGN.md "Status derivation" (APP-2)
 	Status AppStatus `json:"status"`
+}
+
+// AuditPage defines model for AuditPage.
+type AuditPage struct {
+	// Actors Every actor name in the log, for the user filter
+	Actors     []string        `json:"actors"`
+	Items      []ActivityEntry `json:"items"`
+	NextCursor *string         `json:"next_cursor,omitempty"`
 }
 
 // AvailablePlugin defines model for AvailablePlugin.
@@ -466,6 +712,106 @@ type InviteUserRequest struct {
 
 	// Username Lowercase letters, digits, dash and underscore; starts with a letter or digit (USR-1)
 	Username Username `json:"username"`
+}
+
+// Job defines model for Job.
+type Job struct {
+	App       *string   `json:"app,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+
+	// Creator Username of who started it
+	Creator    *string    `json:"creator,omitempty"`
+	Error      *string    `json:"error,omitempty"`
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
+	Id         string     `json:"id"`
+
+	// Kind app.restart, app.stop, app.start, app.rebuild, deploy.*
+	Kind      string      `json:"kind"`
+	Project   *ProjectRef `json:"project,omitempty"`
+	Source    JobSource   `json:"source"`
+	StartedAt *time.Time  `json:"started_at,omitempty"`
+	Status    JobStatus   `json:"status"`
+	Title     string      `json:"title"`
+}
+
+// JobSource defines model for Job.Source.
+type JobSource string
+
+// JobDetail defines model for JobDetail.
+type JobDetail struct {
+	App       *string   `json:"app,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+
+	// Creator Username of who started it
+	Creator    *string    `json:"creator,omitempty"`
+	Error      *string    `json:"error,omitempty"`
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
+	Id         string     `json:"id"`
+
+	// Kind app.restart, app.stop, app.start, app.rebuild, deploy.*
+	Kind      string          `json:"kind"`
+	Project   *ProjectRef     `json:"project,omitempty"`
+	Source    JobDetailSource `json:"source"`
+	StartedAt *time.Time      `json:"started_at,omitempty"`
+	Status    JobStatus       `json:"status"`
+	Steps     []JobStep       `json:"steps"`
+	Title     string          `json:"title"`
+}
+
+// JobDetailSource defines model for JobDetail.Source.
+type JobDetailSource string
+
+// JobLine defines model for JobLine.
+type JobLine struct {
+	Seq int64 `json:"seq"`
+
+	// Step Position of the step that printed it
+	Step   *int          `json:"step,omitempty"`
+	Stream JobLineStream `json:"stream"`
+	Text   string        `json:"text"`
+	Ts     time.Time     `json:"ts"`
+}
+
+// JobLineStream defines model for JobLine.Stream.
+type JobLineStream string
+
+// JobPage defines model for JobPage.
+type JobPage struct {
+	Items      []Job   `json:"items"`
+	NextCursor *string `json:"next_cursor,omitempty"`
+}
+
+// JobRef defines model for JobRef.
+type JobRef struct {
+	JobId string `json:"job_id"`
+}
+
+// JobStatus defines model for JobStatus.
+type JobStatus string
+
+// JobStep defines model for JobStep.
+type JobStep struct {
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
+	Name       string     `json:"name"`
+	Position   int        `json:"position"`
+	StartedAt  *time.Time `json:"started_at,omitempty"`
+	Status     StepStatus `json:"status"`
+}
+
+// LogLine defines model for LogLine.
+type LogLine struct {
+	// Process Container, such as web.1
+	Process *string    `json:"process,omitempty"`
+	Text    string     `json:"text"`
+	Ts      *time.Time `json:"ts,omitempty"`
+}
+
+// LogTail defines model for LogTail.
+type LogTail struct {
+	Lines []LogLine `json:"lines"`
+
+	// Processes The app's containers, such as web.1, for the process filter
+	Processes []string `json:"processes"`
 }
 
 // Me defines model for Me.
@@ -622,6 +968,9 @@ type StatusCounts struct {
 	Stopped   int `json:"stopped"`
 }
 
+// StepStatus defines model for StepStatus.
+type StepStatus string
+
 // Theme defines model for Theme.
 type Theme string
 
@@ -688,6 +1037,73 @@ type UserStatus string
 
 // Username Lowercase letters, digits, dash and underscore; starts with a letter or digit (USR-1)
 type Username = string
+
+// GetAppLogsParams defines parameters for GetAppLogs.
+type GetAppLogsParams struct {
+	Lines *GetAppLogsParamsLines `form:"lines,omitempty" json:"lines,omitempty"`
+
+	// Process A process type (web) or container (web.1)
+	Process *string `form:"process,omitempty" json:"process,omitempty"`
+}
+
+// GetAppLogsParamsLines defines parameters for GetAppLogs.
+type GetAppLogsParamsLines int
+
+// StreamAppLogsParams defines parameters for StreamAppLogs.
+type StreamAppLogsParams struct {
+	Process *string `form:"process,omitempty" json:"process,omitempty"`
+}
+
+// ListAuditParams defines parameters for ListAudit.
+type ListAuditParams struct {
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// User Actor name
+	User *string `form:"user,omitempty" json:"user,omitempty"`
+
+	// Project Project slug
+	Project *string                `form:"project,omitempty" json:"project,omitempty"`
+	Result  *ListAuditParamsResult `form:"result,omitempty" json:"result,omitempty"`
+	Source  *ListAuditParamsSource `form:"source,omitempty" json:"source,omitempty"`
+	Cursor  *string                `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit   *int                   `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListAuditParamsResult defines parameters for ListAudit.
+type ListAuditParamsResult string
+
+// ListAuditParamsSource defines parameters for ListAudit.
+type ListAuditParamsSource string
+
+// ExportAuditParams defines parameters for ExportAudit.
+type ExportAuditParams struct {
+	Q       *string                  `form:"q,omitempty" json:"q,omitempty"`
+	User    *string                  `form:"user,omitempty" json:"user,omitempty"`
+	Project *string                  `form:"project,omitempty" json:"project,omitempty"`
+	Result  *ExportAuditParamsResult `form:"result,omitempty" json:"result,omitempty"`
+	Source  *ExportAuditParamsSource `form:"source,omitempty" json:"source,omitempty"`
+}
+
+// ExportAuditParamsResult defines parameters for ExportAudit.
+type ExportAuditParamsResult string
+
+// ExportAuditParamsSource defines parameters for ExportAudit.
+type ExportAuditParamsSource string
+
+// ListJobsParams defines parameters for ListJobs.
+type ListJobsParams struct {
+	App *string `form:"app,omitempty" json:"app,omitempty"`
+
+	// Project Project slug
+	Project *string `form:"project,omitempty" json:"project,omitempty"`
+	Cursor  *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit   *int    `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// StreamJobParams defines parameters for StreamJob.
+type StreamJobParams struct {
+	After *int64 `form:"after,omitempty" json:"after,omitempty"`
+}
 
 // DeleteProjectParams defines parameters for DeleteProject.
 type DeleteProjectParams struct {

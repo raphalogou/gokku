@@ -35,5 +35,8 @@ export const ErrorCode = {
   project_exists: 'project_exists',
   confirm_mismatch: 'confirm_mismatch',
   dokku_unreachable: 'dokku_unreachable',
+  app_protected: 'app_protected',
+  job_finished: 'job_finished',
+  too_many_streams: 'too_many_streams',
   internal: 'internal',
 } as const;

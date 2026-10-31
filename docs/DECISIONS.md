@@ -117,3 +117,45 @@ One entry per decision: date, decision, reason, alternatives.
   project Settings tab (rename, delete) is built with the rest of project settings in M4. Deleting a project
   does not touch app config yet; managed variables only exist from M4, where `PRJ-4` and `SHV-2` complete it.
 - **Reason:** SPEC section 11 lists "project settings and deletion" under M4.
+
+## 2026-10-31: App actions open the job page
+
+- **Decision:** restart, stop, start and rebuild queue a job and open `/jobs/:id`, the same screen DESIGN 7
+  names "Project action progress", with the steps, the streamed output and Cancel. Stop and rebuild ask
+  first. Deploys keep their own route (`/apps/:name/deploys/:jobId`) in M5.
+- **Reason:** one job screen serves every job kind; the app header already shows the status while it runs.
+
+## 2026-10-31: Job output is kept in memory while the job runs
+
+- **Decision:** a running job keeps all its output lines in memory and stores them in batches (every
+  200 ms or 100 lines, DESIGN 3.5). A subscriber gets the lines after its last seq from memory while the job
+  runs, from the database once it has ended (`JOB-3`).
+- **Reason:** reading the database and the unflushed batch together leaves a window where a line is in
+  neither; memory avoids it. Output is bounded by the 16 KiB line limit and the length of one job.
+
+## 2026-10-31: Log tail merges containers by time
+
+- **Decision:** `GET /apps/{name}/logs` asks `dokku logs <app> --num N` and sorts the lines by their docker
+  timestamp, then keeps the last N. A container filter (`web.1`) passes the process type to `--ps` and keeps
+  that container's lines.
+- **Reason:** Dokku's docker-local scheduler prints each container's last N lines in turn
+  (`scheduler-logs`), so the raw output is not in time order and has up to N lines per container.
+
+## 2026-10-31: Log levels are guessed in the browser
+
+- **Decision:** the level column (`LOG-5`) comes from a leading level word (moved into the column), else
+  ERROR or WARN anywhere in the line, else WARN for stderr and INFO otherwise.
+- **Reason:** it is cosmetic and must always show as text; the server sends lines untouched.
+
+## 2026-10-31: Audit page lists its actors; cancel is audited
+
+- **Decision:** `GET /audit` returns `actors`, every actor name in the log, for the user filter. Canceling a
+  job writes a `jobs:cancel` entry; a lifecycle job writes `apps:<action>` with the job id when it ends, with
+  result `fail` for failed or canceled jobs (`ACT-1`). CSV export cells that start with `=`, `+`, `-` or `@`
+  get a leading quote, so spreadsheets do not run them as formulas.
+- **Reason:** the mockup's user filter lists actors, including token and git names that are not users.
+
+## 2026-10-31: Protected apps are enforced from M3
+
+- **Decision:** stop and rebuild are refused with `app_protected` for apps in `protected_apps` (`SET-2`) as
+  soon as those actions exist. The Settings screen that edits the list comes in M6.

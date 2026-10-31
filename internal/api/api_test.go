@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -21,6 +22,7 @@ import (
 	"gokku/internal/auth"
 	"gokku/internal/dokku"
 	"gokku/internal/events"
+	"gokku/internal/jobs"
 	"gokku/internal/snapshot"
 	"gokku/internal/store"
 )
@@ -36,6 +38,7 @@ type env struct {
 	fake  *dokku.FakeRunner
 	snap  *snapshot.Refresher
 	hub   *events.Hub
+	jobs  *jobs.Manager
 }
 
 func newEnv(t *testing.T) *env {
@@ -59,14 +62,21 @@ func newEnv(t *testing.T) *env {
 	if err := snap.Refresh(t.Context()); err != nil {
 		t.Fatal(err)
 	}
+	client := dokku.NewClient(fake, log)
+	manager := jobs.New(jobs.Options{DB: db, Hub: hub, Log: log, Changed: func(string) { snap.Poke() }})
+	jobsCtx, stopJobs := context.WithCancel(context.Background())
+	if err := manager.Start(jobsCtx); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { stopJobs(); manager.Wait() })
 	a, err := New(Options{
 		Auth: svc, DB: db, Audit: audit.New(db, log), Log: log, Snapshot: snap, Hub: hub,
-		ServerName: "dokku-01", Heartbeat: 50 * time.Millisecond,
+		Jobs: manager, Dokku: client, ServerName: "dokku-01", Heartbeat: 50 * time.Millisecond,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := &env{t: t, api: a, db: db, fake: fake, snap: snap, hub: hub}
+	e := &env{t: t, api: a, db: db, fake: fake, snap: snap, hub: hub, jobs: manager}
 	root := chi.NewRouter()
 	root.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

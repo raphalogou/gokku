@@ -447,6 +447,8 @@ export const CreateProjectResponse = zod.object({
   "domain_count": zod.int(),
   "last_deploy_at": zod.iso.datetime({"offset":true}).nullish(),
   "activity": zod.array(zod.object({
+  "project_slug": zod.string().describe('Empty when the entry belongs to no project'),
+  "job_id": zod.string().nullish(),
   "id": zod.int(),
   "ts": zod.iso.datetime({"offset":true}),
   "actor_name": zod.string(),
@@ -509,6 +511,8 @@ export const GetProjectResponse = zod.object({
   "domain_count": zod.int(),
   "last_deploy_at": zod.iso.datetime({"offset":true}).nullish(),
   "activity": zod.array(zod.object({
+  "project_slug": zod.string().describe('Empty when the entry belongs to no project'),
+  "job_id": zod.string().nullish(),
   "id": zod.int(),
   "ts": zod.iso.datetime({"offset":true}),
   "actor_name": zod.string(),
@@ -582,6 +586,8 @@ export const UpdateProjectResponse = zod.object({
   "domain_count": zod.int(),
   "last_deploy_at": zod.iso.datetime({"offset":true}).nullish(),
   "activity": zod.array(zod.object({
+  "project_slug": zod.string().describe('Empty when the entry belongs to no project'),
+  "job_id": zod.string().nullish(),
   "id": zod.int(),
   "ts": zod.iso.datetime({"offset":true}),
   "actor_name": zod.string(),
@@ -725,3 +731,234 @@ export const ListServicesResponseItem = zod.object({
   "links": zod.array(zod.string()).describe('Names of the linked apps')
 })
 export const ListServicesResponse = zod.array(ListServicesResponseItem)
+
+
+/**
+ * @summary Restart the app as a job (APP-6)
+ */
+export const RestartAppParams = zod.object({
+  "name": zod.string()
+})
+
+export const RestartAppResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Stop the app as a job (APP-6)
+ */
+export const StopAppParams = zod.object({
+  "name": zod.string()
+})
+
+export const StopAppResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Start the app as a job (APP-6)
+ */
+export const StartAppParams = zod.object({
+  "name": zod.string()
+})
+
+export const StartAppResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Rebuild the app as a job (APP-6)
+ */
+export const RebuildAppParams = zod.object({
+  "name": zod.string()
+})
+
+export const RebuildAppResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary The last lines of the app's output (LOG-1)
+ */
+export const GetAppLogsParams = zod.object({
+  "name": zod.string()
+})
+
+export const getAppLogsQueryLinesDefault = 100;
+
+export const GetAppLogsQueryParams = zod.object({
+  "lines": zod.union([zod.literal(100),zod.literal(500),zod.literal(1000)]).default(getAppLogsQueryLinesDefault),
+  "process": zod.string().optional().describe('A process type (web) or container (web.1)')
+})
+
+export const GetAppLogsResponse = zod.object({
+  "lines": zod.array(zod.object({
+  "ts": zod.iso.datetime({"offset":true}).nullish(),
+  "process": zod.string().nullish().describe('Container, such as web.1'),
+  "text": zod.string()
+})),
+  "processes": zod.array(zod.string()).describe('The app\'s containers, such as web.1, for the process filter')
+})
+
+
+/**
+ * Each `line` event carries a LogLine. One `dokku logs --tail` process runs per stream and
+ * stops when the client disconnects. At most 5 streams per user and 20 in total (429).
+ * @summary Follow the app's output over SSE (LOG-2, LOG-4)
+ */
+export const StreamAppLogsParams = zod.object({
+  "name": zod.string()
+})
+
+export const StreamAppLogsQueryParams = zod.object({
+  "process": zod.string().optional()
+})
+
+export const StreamAppLogsResponse = zod.unknown()
+
+
+export const listJobsQueryLimitDefault = 50;
+export const listJobsQueryLimitMax = 100;
+
+
+
+export const ListJobsQueryParams = zod.object({
+  "app": zod.string().optional(),
+  "project": zod.string().optional().describe('Project slug'),
+  "cursor": zod.string().optional(),
+  "limit": zod.int().min(1).max(listJobsQueryLimitMax).default(listJobsQueryLimitDefault)
+})
+
+export const ListJobsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string().describe('app.restart, app.stop, app.start, app.rebuild, deploy.*'),
+  "title": zod.string(),
+  "status": zod.enum(['queued', 'running', 'succeeded', 'failed', 'canceled']),
+  "app": zod.string().nullish(),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional(),
+  "creator": zod.string().nullish().describe('Username of who started it'),
+  "source": zod.enum(['web', 'api', 'system']),
+  "error": zod.string().nullish(),
+  "created_at": zod.iso.datetime({"offset":true}),
+  "started_at": zod.iso.datetime({"offset":true}).nullish(),
+  "finished_at": zod.iso.datetime({"offset":true}).nullish()
+})),
+  "next_cursor": zod.string().nullish()
+})
+
+
+export const GetJobParams = zod.object({
+  "id": zod.string()
+})
+
+export const GetJobResponse = zod.object({
+  "id": zod.string(),
+  "kind": zod.string().describe('app.restart, app.stop, app.start, app.rebuild, deploy.*'),
+  "title": zod.string(),
+  "status": zod.enum(['queued', 'running', 'succeeded', 'failed', 'canceled']),
+  "app": zod.string().nullish(),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional(),
+  "creator": zod.string().nullish().describe('Username of who started it'),
+  "source": zod.enum(['web', 'api', 'system']),
+  "error": zod.string().nullish(),
+  "created_at": zod.iso.datetime({"offset":true}),
+  "started_at": zod.iso.datetime({"offset":true}).nullish(),
+  "finished_at": zod.iso.datetime({"offset":true}).nullish()
+}).and(zod.object({
+  "steps": zod.array(zod.object({
+  "position": zod.int(),
+  "name": zod.string(),
+  "status": zod.enum(['queued', 'running', 'succeeded', 'failed', 'skipped', 'canceled']),
+  "started_at": zod.iso.datetime({"offset":true}).nullish(),
+  "finished_at": zod.iso.datetime({"offset":true}).nullish()
+}))
+}))
+
+
+/**
+ * `line` events have the line's seq as their id and a JobLine as data; `step` events carry a
+ * JobStep, and a final `status` event the finished Job, after which the stream ends. Send
+ * `Last-Event-ID` (or `?after=`) to resume after a seq.
+ * @summary The job's output over SSE, resumable with Last-Event-ID (JOB-3)
+ */
+export const StreamJobParams = zod.object({
+  "id": zod.string()
+})
+
+export const StreamJobQueryParams = zod.object({
+  "after": zod.int().optional()
+})
+
+export const StreamJobResponse = zod.unknown()
+
+
+/**
+ * @summary Cancel a queued or running job (JOB-4)
+ */
+export const CancelJobParams = zod.object({
+  "id": zod.string()
+})
+
+export const CancelJobResponse = zod.void()
+
+
+/**
+ * @summary The audit log, filtered, newest first (ACT-2)
+ */
+export const listAuditQueryLimitDefault = 50;
+export const listAuditQueryLimitMax = 100;
+
+
+
+export const ListAuditQueryParams = zod.object({
+  "q": zod.string().optional(),
+  "user": zod.string().optional().describe('Actor name'),
+  "project": zod.string().optional().describe('Project slug'),
+  "result": zod.enum(['ok', 'fail']).optional(),
+  "source": zod.enum(['web', 'api', 'git', 'system']).optional(),
+  "cursor": zod.string().optional(),
+  "limit": zod.int().min(1).max(listAuditQueryLimitMax).default(listAuditQueryLimitDefault)
+})
+
+export const ListAuditResponse = zod.object({
+  "items": zod.array(zod.object({
+  "project_slug": zod.string().describe('Empty when the entry belongs to no project'),
+  "job_id": zod.string().nullish(),
+  "id": zod.int(),
+  "ts": zod.iso.datetime({"offset":true}),
+  "actor_name": zod.string(),
+  "actor_type": zod.enum(['user', 'token', 'system', 'git']),
+  "action": zod.string(),
+  "target_type": zod.string(),
+  "target_name": zod.string(),
+  "result": zod.enum(['ok', 'fail']),
+  "source": zod.enum(['web', 'api', 'git', 'system'])
+})),
+  "next_cursor": zod.string().nullish(),
+  "actors": zod.array(zod.string()).describe('Every actor name in the log, for the user filter')
+})
+
+
+/**
+ * @summary The filtered audit log as CSV (ACT-2)
+ */
+export const ExportAuditQueryParams = zod.object({
+  "q": zod.string().optional(),
+  "user": zod.string().optional(),
+  "project": zod.string().optional(),
+  "result": zod.enum(['ok', 'fail']).optional(),
+  "source": zod.enum(['web', 'api', 'git', 'system']).optional()
+})
+
+export const ExportAuditResponse = zod.unknown()

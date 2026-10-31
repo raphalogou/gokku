@@ -8,6 +8,9 @@ import (
 	"gokku/internal/store"
 )
 
+// fakeDelay paces the fake runner's streamed output, so job progress is visible.
+const fakeDelay = 150 * time.Millisecond
+
 // fakeProjects are the projects of the mockup, seeded once for GOKKU_RUNNER=fake (NFR-8).
 var fakeProjects = []struct {
 	slug, name, description string

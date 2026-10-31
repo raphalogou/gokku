@@ -21,6 +21,7 @@ import (
 	"gokku/internal/config"
 	"gokku/internal/dokku"
 	"gokku/internal/events"
+	"gokku/internal/jobs"
 	"gokku/internal/secrets"
 	"gokku/internal/server"
 	"gokku/internal/snapshot"
@@ -136,12 +137,18 @@ func serve(args []string) error {
 		return err
 	}
 	hub := events.NewHub()
+	client := dokku.NewClient(runner, log)
 	snap := snapshot.New(snapshot.Options{
-		Client: dokku.NewClient(runner, log), Activity: snapshot.StoreActivity(db), Hub: hub, Log: log,
+		Client: client, Activity: snapshot.StoreActivity(db), Hub: hub, Log: log,
 	})
+	manager := jobs.New(jobs.Options{DB: db, Hub: hub, Log: log, Changed: func(string) { snap.Poke() }})
+	if err := manager.Start(ctx); err != nil {
+		return err
+	}
+	defer func() { stop(); manager.Wait() }() // stop the workers even when serving fails
 	apiHandler, err := api.New(api.Options{
 		Auth: authSvc, DB: db, Audit: audit.New(db, log), Log: log, Snapshot: snap, Hub: hub,
-		ServerName: serverName, DokkuHost: cfg.DokkuHost,
+		Jobs: manager, Dokku: client, ServerName: serverName, DokkuHost: cfg.DokkuHost,
 	})
 	if err != nil {
 		return err
@@ -202,6 +209,7 @@ func newRunner(ctx context.Context, cfg config.Config, db *store.DB) (dokku.Runn
 	if cfg.Runner == config.RunnerFake {
 		fake := dokku.NewFakeRunner(time.Now())
 		fake.FailFile = filepath.Join(cfg.DataDir, "fake-fail")
+		fake.Delay = fakeDelay
 		return fake, "dokku-01", seedFake(ctx, db)
 	}
 	name, err := os.Hostname()

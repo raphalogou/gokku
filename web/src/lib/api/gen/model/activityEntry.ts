@@ -16,6 +16,10 @@ import type { ActivityEntryResult } from './activityEntryResult';
 import type { ActivityEntrySource } from './activityEntrySource';
 
 export interface ActivityEntry {
+  /** Empty when the entry belongs to no project */
+  project_slug: string;
+  /** @nullable */
+  job_id?: string | null;
   id: number;
   ts: string;
   actor_name: string;
