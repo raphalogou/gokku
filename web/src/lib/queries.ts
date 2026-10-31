@@ -11,6 +11,8 @@ import {
   getProject,
   getProjectEnv,
   getServer,
+  getService,
+  getSettings,
   getSetupStatus,
   listAppDeploys,
   listApps,
@@ -39,6 +41,8 @@ export const queryKeys = {
   apps: () => ["apps"] as const,
   app: (name: string) => ["apps", name] as const,
   services: () => ["services"] as const,
+  service: (type: string, name: string) => ["services", type, name] as const,
+  settings: () => ["settings"] as const,
   jobs: () => ["jobs"] as const,
   jobList: (params: ListJobsParams) => ["jobs", "list", params] as const,
   job: (id: string) => ["jobs", id] as const,
@@ -85,6 +89,15 @@ export const appsQuery = () =>
 
 export const appQuery = (name: string) =>
   queryOptions({ queryKey: queryKeys.app(name), queryFn: ({ signal }) => getApp(name, { signal }) });
+
+export const serviceQuery = (type: string, name: string) =>
+  queryOptions({
+    queryKey: queryKeys.service(type, name),
+    queryFn: ({ signal }) => getService(type, name, { signal }),
+  });
+
+export const settingsQuery = () =>
+  queryOptions({ queryKey: queryKeys.settings(), queryFn: ({ signal }) => getSettings({ signal }) });
 
 export const servicesQuery = () =>
   queryOptions({ queryKey: queryKeys.services(), queryFn: ({ signal }) => listServices({ signal }) });

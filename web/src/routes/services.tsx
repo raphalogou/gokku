@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { Database, FolderKanban, Info } from "lucide-react";
+import { Database, FolderKanban, Info, Plus } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, Outlet } from "react-router";
 import { Card, CardHeader } from "~/components/app/card";
 import { ChipList } from "~/components/app/chip";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
 import { PageHeader } from "~/components/app/page-header";
 import { EmptyState, Skeleton } from "~/components/app/states";
 import { StatusPill } from "~/components/app/status-pill";
+import { buttonVariants } from "~/components/ui/button";
 import { SearchInput } from "~/components/ui/search-input";
+import { useCan } from "~/hooks/use-can";
+import type { ServiceSummary } from "~/lib/api/gen/model";
 import { errorMessage } from "~/lib/forms";
 import { pluginsQuery, serverQuery, servicesQuery } from "~/lib/queries";
 import { queryClient } from "~/lib/query-client";
@@ -22,7 +25,7 @@ export function clientLoader() {
   return null;
 }
 
-/** Services list, read-only in M2 (SVC-2): filter by type, search, and a note about
+/** Services list (SVC-2): filter by type, search, create for admins, and a note about
  * datastore plugins that are not installed. */
 export default function Services() {
   const services = useQuery(servicesQuery());
@@ -30,6 +33,7 @@ export default function Services() {
   const { data: plugins } = useQuery(pluginsQuery());
   const [type, setType] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const canCreate = useCan("service.create");
   const t = strings.services;
 
   const list = services.data ?? [];
@@ -63,7 +67,17 @@ export default function Services() {
       <PageHeader
         title={t.title}
         description={t.description(server?.name ?? "")}
-        actions={<SearchInput label={t.search} value={search} onChange={setSearch} />}
+        actions={
+          <>
+            <SearchInput label={t.search} value={search} onChange={setSearch} />
+            {canCreate && (server?.datastores.length ?? 0) > 0 ? (
+              <Link to="/services/new" className={buttonVariants()}>
+                <Plus aria-hidden />
+                {t.create}
+              </Link>
+            ) : null}
+          </>
+        }
       />
 
       {types.length > 1 ? (
@@ -105,45 +119,7 @@ export default function Services() {
         ) : shown.length === 0 ? (
           <p className="px-5 py-10 text-center text-muted">{t.noMatch}</p>
         ) : (
-          <DataTable label={t.allServices} className="min-w-[760px]">
-            <THead>
-              <TH>{t.columns.name}</TH>
-              <TH>{t.columns.type}</TH>
-              <TH>{t.columns.status}</TH>
-              <TH>{t.columns.project}</TH>
-              <TH>{t.columns.links}</TH>
-            </THead>
-            <tbody>
-              {shown.map((s) => (
-                <TR key={`${s.type}/${s.name}`}>
-                  <TD>
-                    <span className="font-semibold">{s.name}</span>
-                    <span className="block font-mono text-[12px] text-muted">{s.version}</span>
-                  </TD>
-                  <TD>{datastoreName(s.type)}</TD>
-                  <TD>
-                    <StatusPill kind={serviceStatusKind[s.status]} label={strings.serviceStatus[s.status]} />
-                  </TD>
-                  <TD>
-                    {s.project ? (
-                      <Link
-                        to={`/projects/${s.project.slug}`}
-                        className="inline-flex items-center gap-1.5 hover:underline"
-                      >
-                        <FolderKanban className="size-3.5 text-muted" aria-hidden />
-                        {s.project.name}
-                      </Link>
-                    ) : (
-                      <span className="text-muted">{strings.apps.unassigned}</span>
-                    )}
-                  </TD>
-                  <TD>
-                    <ChipList items={s.links} empty={t.none} />
-                  </TD>
-                </TR>
-              ))}
-            </tbody>
-          </DataTable>
+          <ServicesTable services={shown} />
         )}
       </Card>
 
@@ -159,6 +135,79 @@ export default function Services() {
           </span>
         </div>
       ) : null}
+      <Outlet />
+    </>
+  );
+}
+
+const serviceHref = (s: ServiceSummary) => `/services/${s.type}/${s.name}`;
+
+function ServiceProject({ s }: { s: ServiceSummary }) {
+  return s.project ? (
+    <Link to={`/projects/${s.project.slug}`} className="inline-flex items-center gap-1.5 hover:underline">
+      <FolderKanban className="size-3.5 text-muted" aria-hidden />
+      {s.project.name}
+    </Link>
+  ) : (
+    <span className="text-muted">{strings.apps.unassigned}</span>
+  );
+}
+
+function ServicesTable({ services }: { services: ServiceSummary[] }) {
+  const t = strings.services;
+  return (
+    <>
+      {/* Below 640 px the table becomes stacked cards (DESIGN.md, 7). */}
+      <ul className="divide-y divide-line sm:hidden">
+        {services.map((s) => (
+          <li key={`${s.type}/${s.name}`} className="flex flex-col gap-1.5 px-5 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <Link to={serviceHref(s)} className="truncate text-[17px] font-bold hover:underline">
+                {s.name}
+              </Link>
+              <StatusPill kind={serviceStatusKind[s.status]} label={strings.serviceStatus[s.status]} />
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted">
+              <span>{datastoreName(s.type)}</span>
+              <ServiceProject s={s} />
+            </div>
+            <ChipList items={s.links} empty={t.none} />
+          </li>
+        ))}
+      </ul>
+      <div className="hidden sm:block">
+        <DataTable label={t.allServices} className="min-w-[760px]">
+          <THead>
+            <TH>{t.columns.name}</TH>
+            <TH>{t.columns.type}</TH>
+            <TH>{t.columns.status}</TH>
+            <TH>{t.columns.project}</TH>
+            <TH>{t.columns.links}</TH>
+          </THead>
+          <tbody>
+            {services.map((s) => (
+              <TR key={`${s.type}/${s.name}`}>
+                <TD>
+                  <Link to={serviceHref(s)} className="font-semibold hover:underline">
+                    {s.name}
+                  </Link>
+                  <span className="block font-mono text-[12px] text-muted">{s.version}</span>
+                </TD>
+                <TD>{datastoreName(s.type)}</TD>
+                <TD>
+                  <StatusPill kind={serviceStatusKind[s.status]} label={strings.serviceStatus[s.status]} />
+                </TD>
+                <TD>
+                  <ServiceProject s={s} />
+                </TD>
+                <TD>
+                  <ChipList items={s.links} empty={t.none} />
+                </TD>
+              </TR>
+            ))}
+          </tbody>
+        </DataTable>
+      </div>
     </>
   );
 }

@@ -32,11 +32,11 @@ export default [
     ]),
     route("apps/:name/deploys/:jobId", "routes/deploy-output.tsx"),
     route("jobs/:id", "routes/job.tsx"),
-    route("services", "routes/services.tsx"),
+    route("services", "routes/services.tsx", [route("new", "routes/services-new.tsx")]),
+    route("services/:type/:name", "routes/service.tsx"),
     route("plugins", "routes/plugins.tsx"),
-    // Screens of later milestones, so navigation works and says what is coming.
     route("activity", "routes/activity.tsx"),
-    route("settings", "routes/later.tsx", { id: "settings" }),
+    route("settings", "routes/settings.tsx"),
     route("*", "routes/not-found.tsx"),
   ]),
 ] satisfies RouteConfig;
