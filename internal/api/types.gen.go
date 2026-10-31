@@ -118,6 +118,75 @@ func (e AppStatus) Valid() bool {
 	}
 }
 
+// Defines values for DeployStatus.
+const (
+	DeployStatusCanceled  DeployStatus = "canceled"
+	DeployStatusFailed    DeployStatus = "failed"
+	DeployStatusRunning   DeployStatus = "running"
+	DeployStatusSucceeded DeployStatus = "succeeded"
+)
+
+// Valid indicates whether the value is a known member of the DeployStatus enum.
+func (e DeployStatus) Valid() bool {
+	switch e {
+	case DeployStatusCanceled:
+		return true
+	case DeployStatusFailed:
+		return true
+	case DeployStatusRunning:
+		return true
+	case DeployStatusSucceeded:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeployRequestSource.
+const (
+	DeployRequestSourceImage      DeployRequestSource = "image"
+	DeployRequestSourceRepository DeployRequestSource = "repository"
+)
+
+// Valid indicates whether the value is a known member of the DeployRequestSource enum.
+func (e DeployRequestSource) Valid() bool {
+	switch e {
+	case DeployRequestSourceImage:
+		return true
+	case DeployRequestSourceRepository:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeploySource.
+const (
+	DeploySourceGit        DeploySource = "git"
+	DeploySourceImage      DeploySource = "image"
+	DeploySourceObserved   DeploySource = "observed"
+	DeploySourceRebuild    DeploySource = "rebuild"
+	DeploySourceRepository DeploySource = "repository"
+)
+
+// Valid indicates whether the value is a known member of the DeploySource enum.
+func (e DeploySource) Valid() bool {
+	switch e {
+	case DeploySourceGit:
+		return true
+	case DeploySourceImage:
+		return true
+	case DeploySourceObserved:
+		return true
+	case DeploySourceRebuild:
+		return true
+	case DeploySourceRepository:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EnvStatus.
 const (
 	EnvStatusApplied    EnvStatus = "applied"
@@ -158,6 +227,7 @@ const (
 	ErrorCodeMethodNotAllowed    ErrorCode = "method_not_allowed"
 	ErrorCodeNotFound            ErrorCode = "not_found"
 	ErrorCodeNotInvited          ErrorCode = "not_invited"
+	ErrorCodeNothingToRetry      ErrorCode = "nothing_to_retry"
 	ErrorCodePluginMissing       ErrorCode = "plugin_missing"
 	ErrorCodeProjectExists       ErrorCode = "project_exists"
 	ErrorCodeRateLimited         ErrorCode = "rate_limited"
@@ -207,6 +277,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeNotFound:
 		return true
 	case ErrorCodeNotInvited:
+		return true
+	case ErrorCodeNothingToRetry:
 		return true
 	case ErrorCodePluginMissing:
 		return true
@@ -662,6 +734,16 @@ type AppCreated struct {
 	Source AppSource `json:"source"`
 }
 
+// AppDeploys defines model for AppDeploys.
+type AppDeploys struct {
+	// DeployBranch The branch Dokku deploys on push
+	DeployBranch *string  `json:"deploy_branch,omitempty"`
+	Deploys      []Deploy `json:"deploys"`
+
+	// GitRemote dokku@<host>:<app>, for git push
+	GitRemote string `json:"git_remote"`
+}
+
 // AppDetail defines model for AppDetail.
 type AppDetail struct {
 	Builder   string     `json:"builder"`
@@ -828,6 +910,44 @@ type Credentials struct {
 	Username string   `json:"username"`
 }
 
+// Deploy defines model for Deploy.
+type Deploy struct {
+	Creator    *string    `json:"creator,omitempty"`
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
+	Id         string     `json:"id"`
+
+	// JobId Absent for observed deploys, which have no output
+	JobId *string `json:"job_id,omitempty"`
+
+	// Ref Image, repository#ref, or the observed revision
+	Ref       string       `json:"ref"`
+	Source    DeploySource `json:"source"`
+	StartedAt time.Time    `json:"started_at"`
+	Status    DeployStatus `json:"status"`
+}
+
+// DeployStatus defines model for Deploy.Status.
+type DeployStatus string
+
+// DeployRequest defines model for DeployRequest.
+type DeployRequest struct {
+	// Image For source image
+	Image *string `json:"image,omitempty"`
+
+	// Ref Branch, tag or commit; default branch when empty
+	Ref    *string             `json:"ref,omitempty"`
+	Source DeployRequestSource `json:"source"`
+
+	// Url For source repository
+	Url *string `json:"url,omitempty"`
+}
+
+// DeployRequestSource defines model for DeployRequest.Source.
+type DeployRequestSource string
+
+// DeploySource defines model for DeploySource.
+type DeploySource string
+
 // DomainRequest defines model for DomainRequest.
 type DomainRequest struct {
 	Domain string `json:"domain"`
@@ -911,7 +1031,10 @@ type JobSource string
 
 // JobDetail defines model for JobDetail.
 type JobDetail struct {
-	App       *string   `json:"app,omitempty"`
+	App *string `json:"app,omitempty"`
+
+	// Children For a project action, one job per app (JOB-5)
+	Children  []Job     `json:"children"`
 	CreatedAt time.Time `json:"created_at"`
 
 	// Creator Username of who started it
@@ -922,6 +1045,7 @@ type JobDetail struct {
 
 	// Kind app.restart, app.stop, app.start, app.rebuild, deploy.*
 	Kind      string          `json:"kind"`
+	ParentId  *string         `json:"parent_id,omitempty"`
 	Project   *ProjectRef     `json:"project,omitempty"`
 	Source    JobDetailSource `json:"source"`
 	StartedAt *time.Time      `json:"started_at,omitempty"`
@@ -1428,6 +1552,9 @@ type UpdateAppConfigJSONRequestBody = UpdateConfigRequest
 
 // RevealAppConfigJSONRequestBody defines body for RevealAppConfig for application/json ContentType.
 type RevealAppConfigJSONRequestBody = RevealRequest
+
+// DeployAppJSONRequestBody defines body for DeployApp for application/json ContentType.
+type DeployAppJSONRequestBody = DeployRequest
 
 // AddAppDomainJSONRequestBody defines body for AddAppDomain for application/json ContentType.
 type AddAppDomainJSONRequestBody = DomainRequest

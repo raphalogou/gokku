@@ -134,6 +134,9 @@ func (a *API) register(r *router) {
 	r.Route(http.MethodPut, "/projects/{slug}/env", authz.ProjectEnvWrite, a.putProjectEnv)
 	r.Route(http.MethodPost, "/projects/{slug}/env/apply", authz.ProjectEnvWrite, a.applyProjectEnv)
 	r.Route(http.MethodPost, "/projects/{slug}/env/reveal", authz.AppSecretsReveal, a.revealProjectEnv)
+	for _, action := range []string{dokku.ActionRestart, dokku.ActionStop, dokku.ActionStart, dokku.ActionRebuild} {
+		r.Route(http.MethodPost, "/projects/{slug}/actions/"+action, authz.ProjectOperate, a.projectAction(action))
+	}
 	r.Route(http.MethodPut, "/projects/{slug}/apps/{app}", authz.ProjectMembersWrite, a.addProjectApp)
 	r.Route(http.MethodDelete, "/projects/{slug}/apps/{app}", authz.ProjectMembersWrite, a.removeProjectApp)
 	r.Route(http.MethodPut, "/projects/{slug}/services/{type}/{name}", authz.ProjectMembersWrite, a.addProjectService)
@@ -158,6 +161,8 @@ func (a *API) register(r *router) {
 	r.Route(http.MethodPost, "/apps/{name}/ssl", authz.AppSSLWrite, a.changeAppSSL)
 	r.Route(http.MethodGet, "/apps/{name}/scale", authz.AppView, a.getAppScale)
 	r.Route(http.MethodPut, "/apps/{name}/scale", authz.AppScale, a.putAppScale)
+	r.Route(http.MethodGet, "/apps/{name}/deploys", authz.AppView, a.listAppDeploys)
+	r.Route(http.MethodPost, "/apps/{name}/deploys", authz.AppDeploy, a.deployApp)
 	r.Route(http.MethodGet, "/apps/{name}/logs", authz.AppLogsRead, a.getAppLogs)
 	r.Route(http.MethodGet, "/apps/{name}/logs/stream", authz.AppLogsRead, a.streamAppLogs)
 
@@ -165,6 +170,7 @@ func (a *API) register(r *router) {
 	r.Route(http.MethodGet, "/jobs/{id}", authz.JobView, a.getJob)
 	r.Route(http.MethodGet, "/jobs/{id}/stream", authz.JobView, a.streamJob)
 	r.Route(http.MethodPost, "/jobs/{id}/cancel", authz.JobCancel, a.cancelJob)
+	r.Route(http.MethodPost, "/jobs/{id}/retry-failed", authz.ProjectOperate, a.retryFailedJobs)
 
 	r.Route(http.MethodGet, "/audit", authz.AuditView, a.listAudit)
 	r.Route(http.MethodGet, "/audit/export", authz.AuditExport, a.exportAudit)

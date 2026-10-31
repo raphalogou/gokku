@@ -494,6 +494,78 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
 
+  /projects/{slug}/actions/restart:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: restartProjectApps
+      tags: [projects]
+      summary: "Restart every app of the project: one parent job, one child per app (PRJ-5, JOB-5)"
+      responses:
+        "202":
+          description: The parent job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /projects/{slug}/actions/stop:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: stopProjectApps
+      tags: [projects]
+      summary: "Stop every app of the project: one parent job, one child per app (PRJ-5, JOB-5)"
+      responses:
+        "202":
+          description: The parent job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /projects/{slug}/actions/start:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: startProjectApps
+      tags: [projects]
+      summary: "Start every app of the project: one parent job, one child per app (PRJ-5, JOB-5)"
+      responses:
+        "202":
+          description: The parent job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /projects/{slug}/actions/rebuild:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: rebuildProjectApps
+      tags: [projects]
+      summary: "Rebuild every app of the project: one parent job, one child per app (PRJ-5, JOB-5)"
+      responses:
+        "202":
+          description: The parent job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
   /apps:
     post:
       operationId: createApp
@@ -923,6 +995,40 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
         "503": { $ref: "#/components/responses/Error" }
 
+  /apps/{name}/deploys:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: listAppDeploys
+      tags: [apps]
+      summary: "Deploy history and how to push (DEP-1, DEP-3)"
+      responses:
+        "200":
+          description: Deploys, newest first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppDeploys" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: deployApp
+      tags: [apps]
+      summary: "Deploy a Docker image or a Git repository as a job (DEP-1, DEP-2)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeployRequest" }
+      responses:
+        "202":
+          description: The deploy job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
   /apps/{name}/logs:
     parameters:
       - { name: name, in: path, required: true, schema: { type: string } }
@@ -1005,7 +1111,8 @@ paths:
       summary: The job's output over SSE, resumable with Last-Event-ID (JOB-3)
       description: |
         `line` events have the line's seq as their id and a JobLine as data; `step` events carry a
-        JobStep, and a final `status` event the finished Job, after which the stream ends. Send
+        JobStep; a `steps` event says the steps were replaced (reload the job); a final `status`
+        event carries the finished Job, after which the stream ends. Send
         `Last-Event-ID` (or `?after=`) to resume after a seq.
       parameters:
         - { name: after, in: query, schema: { type: integer, format: int64 } }
@@ -1026,6 +1133,23 @@ paths:
       summary: Cancel a queued or running job (JOB-4)
       responses:
         "202": { description: Cancellation requested }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /jobs/{id}/retry-failed:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: retryFailedJobs
+      tags: [jobs]
+      summary: "Run a project action again for the apps that failed, as a new parent (JOB-5)"
+      responses:
+        "202":
+          description: The new parent job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
@@ -1138,6 +1262,7 @@ components:
         - domain_exists
         - plugin_missing
         - app_exists
+        - nothing_to_retry
         - internal
 
     Role:
@@ -1563,11 +1688,16 @@ components:
       allOf:
         - { $ref: "#/components/schemas/Job" }
         - type: object
-          required: [steps]
+          required: [steps, children]
           properties:
             steps:
               type: array
               items: { $ref: "#/components/schemas/JobStep" }
+            parent_id: { type: string, nullable: true }
+            children:
+              type: array
+              items: { $ref: "#/components/schemas/Job" }
+              description: For a project action, one job per app (JOB-5)
 
     JobPage:
       type: object
@@ -1838,3 +1968,39 @@ components:
       properties:
         name: { type: string, minLength: 1, maxLength: 128, description: The new name }
         project: { type: string, description: The slug of the project to move the app to }
+
+    DeploySource:
+      type: string
+      enum: [git, image, repository, rebuild, observed]
+
+    Deploy:
+      type: object
+      required: [id, source, ref, status, started_at]
+      properties:
+        id: { type: string }
+        source: { $ref: "#/components/schemas/DeploySource" }
+        ref: { type: string, description: "Image, repository#ref, or the observed revision" }
+        status: { type: string, enum: [running, succeeded, failed, canceled] }
+        job_id: { type: string, nullable: true, description: "Absent for observed deploys, which have no output" }
+        creator: { type: string, nullable: true }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+
+    AppDeploys:
+      type: object
+      required: [git_remote, deploys]
+      properties:
+        git_remote: { type: string, description: "dokku@<host>:<app>, for git push" }
+        deploy_branch: { type: string, description: The branch Dokku deploys on push }
+        deploys:
+          type: array
+          items: { $ref: "#/components/schemas/Deploy" }
+
+    DeployRequest:
+      type: object
+      required: [source]
+      properties:
+        source: { type: string, enum: [image, repository] }
+        image: { type: string, maxLength: 255, description: For source image }
+        url: { type: string, maxLength: 2048, description: For source repository }
+        ref: { type: string, maxLength: 255, description: "Branch, tag or commit; default branch when empty" }

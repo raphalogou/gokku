@@ -63,24 +63,43 @@ func (a *API) appAction(action string) HandlerFunc {
 
 // submitLifecycle queues ps:<action> for app as a job, audited when it ends (APP-6, ACT-1).
 func (a *API) submitLifecycle(ctx context.Context, action, name string) (store.Job, error) {
-	k := lifecycleKinds[action]
-	projectID, projectSlug, err := a.appProject(ctx, name)
+	spec, err := a.lifecycleSpec(ctx, action, name)
 	if err != nil {
 		return store.Job{}, err
 	}
+	return a.jobs.Submit(ctx, spec)
+}
+
+// lifecycleSpec is the job of ps:<action> for one app, alone or as a project action's
+// child. A rebuild is also a deploy in the app's history (DEP-3).
+func (a *API) lifecycleSpec(ctx context.Context, action, name string) (jobs.Spec, error) {
+	k := lifecycleKinds[action]
+	projectID, projectSlug, err := a.appProject(ctx, name)
+	if err != nil {
+		return jobs.Spec{}, err
+	}
 	actor := authz.FromContext(ctx)
-	return a.jobs.Submit(ctx, jobs.Spec{
+	rebuild := action == dokku.ActionRebuild
+	return jobs.Spec{
 		Kind: k.kind, Title: k.step + " " + name, App: name, ProjectID: projectID, Actor: actor,
 		Steps: []string{k.step},
 		Run: func(ctx context.Context, t *jobs.Task) error {
+			if rebuild {
+				if err := a.recordDeploy(ctx, t, name, "rebuild", "", actor); err != nil {
+					return err
+				}
+			}
 			return a.dokku.Lifecycle(ctx, action, name, t.Line)
 		},
 		Finished: func(ctx context.Context, job store.Job) {
+			if rebuild {
+				a.finishDeploy(ctx, job)
+			}
 			a.auditJob(ctx, actor, job, audit.Entry{
 				Action: "apps:" + action, TargetType: "app", TargetName: name, ProjectSlug: projectSlug,
 			})
 		},
-	})
+	}, nil
 }
 
 // auditJob records e for a finished job, as a failure unless it succeeded (ACT-1).
@@ -234,9 +253,17 @@ func (a *API) jobDetail(ctx context.Context, id string) (JobDetail, error) {
 		Id: jj.Id, Kind: jj.Kind, Title: jj.Title, Status: jj.Status, App: jj.App, Project: jj.Project,
 		Creator: jj.Creator, Source: JobDetailSource(jj.Source), Error: jj.Error, CreatedAt: jj.CreatedAt,
 		StartedAt: jj.StartedAt, FinishedAt: jj.FinishedAt, Steps: make([]JobStep, 0, len(steps)),
+		ParentId: j.ParentID, Children: []Job{},
 	}
 	for _, s := range steps {
 		out.Steps = append(out.Steps, toStep(s))
+	}
+	children, err := a.db.ChildJobs(ctx, id)
+	if err != nil {
+		return JobDetail{}, err
+	}
+	for _, c := range children {
+		out.Children = append(out.Children, toJob(c, refs))
 	}
 	return out, nil
 }
@@ -346,6 +373,8 @@ func (a *API) streamJob(w http.ResponseWriter, r *http.Request) error {
 				err = s.event("line", strconv.FormatInt(e.Line.Seq, 10), line(e.Line))
 			case "step":
 				err = s.event("step", "", toStep(e.Step))
+			case "steps":
+				err = s.event("steps", "", toStep(e.Step))
 			case "status":
 				if j, jerr := a.jobDetail(context.WithoutCancel(ctx), id); jerr == nil {
 					_ = s.event("status", "", j)

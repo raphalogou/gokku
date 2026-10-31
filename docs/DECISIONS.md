@@ -215,3 +215,25 @@ One entry per decision: date, decision, reason, alternatives.
   Rename moves the membership, provenance, job and deploy rows to the new name. Create (APP-3) puts the
   app in its project and applies the project's shared variables; the intended source is returned for the
   next steps and not stored. Stop, rebuild, rename, move and destroy are refused for protected apps (SET-2).
+
+## 2026-10-31: Deploys and project actions
+
+- **Decision (DEP-1):** an image deploy runs `git:from-image <app> <image>`; a repository deploy runs
+  `git:sync --build <app> <url> [ref]`. Repository URLs must be `https`, `http`, `ssh`, `git` or scp-style;
+  `file:` and local paths, leading dashes and URLs carrying a password are refused, so the URL is not a
+  secret and shows in job output and history. Private repositories use the server's SSH key.
+- **Decision (DEP-2):** a deploy job has the steps Fetch source, Detect builder, Build image, Run checks and
+  Release, moved forward by Dokku's `----->` and `=====>` markers. If no marker appears the steps collapse to
+  one step called Deploy (a `steps` event on the job stream). A rebuild also records a deploy, source
+  `rebuild`. The history row is written when the job starts, so a deploy canceled while queued is not
+  listed: it never ran.
+- **Open question 1 (fallback, `TODO(spec-1)`):** deploys Gokku did not start (a `git push`) are recorded as
+  `observed` when the snapshot sees an app's revision change, unless a Gokku deploy of that app is running
+  or ended in the last 10 minutes. They have no output, and their time is when Gokku noticed them.
+- **Decision (PRJ-5, JOB-5):** a project action is a parent job with one child job per app. The parent takes
+  no worker, so the children run two at a time like any job, under each app's lock. The parent fails with
+  "N of M failed" when any child fails; cancel cancels the children still queued or running; "Retry failed"
+  starts a new parent for the failed and canceled apps only. Stop and rebuild leave protected apps out
+  (SET-2) and list them in the audit entry's
+  detail. Restart all also starts apps that were stopped, as
+  `ps:restart` does.

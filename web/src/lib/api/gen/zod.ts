@@ -671,6 +671,54 @@ export const RemoveProjectServiceResponse = zod.void()
 
 
 /**
+ * @summary Restart every app of the project: one parent job, one child per app (PRJ-5, JOB-5)
+ */
+export const RestartProjectAppsParams = zod.object({
+  "slug": zod.string()
+})
+
+export const RestartProjectAppsResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Stop every app of the project: one parent job, one child per app (PRJ-5, JOB-5)
+ */
+export const StopProjectAppsParams = zod.object({
+  "slug": zod.string()
+})
+
+export const StopProjectAppsResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Start every app of the project: one parent job, one child per app (PRJ-5, JOB-5)
+ */
+export const StartProjectAppsParams = zod.object({
+  "slug": zod.string()
+})
+
+export const StartProjectAppsResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Rebuild every app of the project: one parent job, one child per app (PRJ-5, JOB-5)
+ */
+export const RebuildProjectAppsParams = zod.object({
+  "slug": zod.string()
+})
+
+export const RebuildProjectAppsResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
  * @summary Create an app in a project (APP-3)
  */
 export const createAppBodyNameMax = 128;
@@ -1166,6 +1214,56 @@ export const PutAppScaleResponse = zod.object({
 
 
 /**
+ * @summary Deploy history and how to push (DEP-1, DEP-3)
+ */
+export const ListAppDeploysParams = zod.object({
+  "name": zod.string()
+})
+
+export const ListAppDeploysResponse = zod.object({
+  "git_remote": zod.string().describe('dokku@<host>:<app>, for git push'),
+  "deploy_branch": zod.string().optional().describe('The branch Dokku deploys on push'),
+  "deploys": zod.array(zod.object({
+  "id": zod.string(),
+  "source": zod.enum(['git', 'image', 'repository', 'rebuild', 'observed']),
+  "ref": zod.string().describe('Image, repository#ref, or the observed revision'),
+  "status": zod.enum(['running', 'succeeded', 'failed', 'canceled']),
+  "job_id": zod.string().nullish().describe('Absent for observed deploys, which have no output'),
+  "creator": zod.string().nullish(),
+  "started_at": zod.iso.datetime({"offset":true}),
+  "finished_at": zod.iso.datetime({"offset":true}).nullish()
+}))
+})
+
+
+/**
+ * @summary Deploy a Docker image or a Git repository as a job (DEP-1, DEP-2)
+ */
+export const DeployAppParams = zod.object({
+  "name": zod.string()
+})
+
+export const deployAppBodyImageMax = 255;
+
+export const deployAppBodyUrlMax = 2048;
+
+export const deployAppBodyRefMax = 255;
+
+
+
+export const DeployAppBody = zod.object({
+  "source": zod.enum(['image', 'repository']),
+  "image": zod.string().max(deployAppBodyImageMax).optional().describe('For source image'),
+  "url": zod.string().max(deployAppBodyUrlMax).optional().describe('For source repository'),
+  "ref": zod.string().max(deployAppBodyRefMax).optional().describe('Branch, tag or commit; default branch when empty')
+})
+
+export const DeployAppResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
  * @summary The last lines of the app's output (LOG-1)
  */
 export const GetAppLogsParams = zod.object({
@@ -1266,13 +1364,32 @@ export const GetJobResponse = zod.object({
   "status": zod.enum(['queued', 'running', 'succeeded', 'failed', 'skipped', 'canceled']),
   "started_at": zod.iso.datetime({"offset":true}).nullish(),
   "finished_at": zod.iso.datetime({"offset":true}).nullish()
-}))
+})),
+  "parent_id": zod.string().nullish(),
+  "children": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string().describe('app.restart, app.stop, app.start, app.rebuild, deploy.*'),
+  "title": zod.string(),
+  "status": zod.enum(['queued', 'running', 'succeeded', 'failed', 'canceled']),
+  "app": zod.string().nullish(),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional(),
+  "creator": zod.string().nullish().describe('Username of who started it'),
+  "source": zod.enum(['web', 'api', 'system']),
+  "error": zod.string().nullish(),
+  "created_at": zod.iso.datetime({"offset":true}),
+  "started_at": zod.iso.datetime({"offset":true}).nullish(),
+  "finished_at": zod.iso.datetime({"offset":true}).nullish()
+})).describe('For a project action, one job per app (JOB-5)')
 }))
 
 
 /**
  * `line` events have the line's seq as their id and a JobLine as data; `step` events carry a
- * JobStep, and a final `status` event the finished Job, after which the stream ends. Send
+ * JobStep; a `steps` event says the steps were replaced (reload the job); a final `status`
+ * event carries the finished Job, after which the stream ends. Send
  * `Last-Event-ID` (or `?after=`) to resume after a seq.
  * @summary The job's output over SSE, resumable with Last-Event-ID (JOB-3)
  */
@@ -1295,6 +1412,18 @@ export const CancelJobParams = zod.object({
 })
 
 export const CancelJobResponse = zod.void()
+
+
+/**
+ * @summary Run a project action again for the apps that failed, as a new parent (JOB-5)
+ */
+export const RetryFailedJobsParams = zod.object({
+  "id": zod.string()
+})
+
+export const RetryFailedJobsResponse = zod.object({
+  "job_id": zod.string()
+})
 
 
 /**

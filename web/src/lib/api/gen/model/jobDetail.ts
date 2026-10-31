@@ -14,6 +14,10 @@
 import type { Job } from './job';
 import type { JobStep } from './jobStep';
 
-export type JobDetail = Job & {
+export type JobDetail = Job & ({
   steps: JobStep[];
-};
+  /** @nullable */
+  parent_id?: string | null;
+  /** For a project action, one job per app (JOB-5) */
+  children: Job[];
+});

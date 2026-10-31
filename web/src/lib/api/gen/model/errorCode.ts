@@ -43,5 +43,6 @@ export const ErrorCode = {
   domain_exists: 'domain_exists',
   plugin_missing: 'plugin_missing',
   app_exists: 'app_exists',
+  nothing_to_retry: 'nothing_to_retry',
   internal: 'internal',
 } as const;

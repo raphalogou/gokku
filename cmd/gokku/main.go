@@ -141,6 +141,7 @@ func serve(args []string) error {
 	client := dokku.NewClient(runner, log)
 	snap := snapshot.New(snapshot.Options{
 		Client: client, Activity: snapshot.StoreActivity(db), Hub: hub, Log: log,
+		OnRevision: api.ObserveRevision(db, log),
 	})
 	manager := jobs.New(jobs.Options{DB: db, Hub: hub, Log: log, Changed: func(string) { snap.Poke() }})
 	if err := manager.Start(ctx); err != nil {

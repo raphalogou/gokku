@@ -15,6 +15,7 @@ import type {
   AcceptInviteRequest,
   AppConfig,
   AppCreated,
+  AppDeploys,
   AppDetail,
   AppDomains,
   AppScale,
@@ -28,6 +29,7 @@ import type {
   CreateTokenRequest,
   Credentials,
   DeleteProjectParams,
+  DeployRequest,
   DestroyAppParams,
   DomainRequest,
   ExportAuditParams,
@@ -972,6 +974,102 @@ export const removeProjectService = async (slug: string,
 
 
 
+export const getRestartProjectAppsUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/actions/restart`
+}
+
+/**
+ * @summary Restart every app of the project: one parent job, one child per app (PRJ-5, JOB-5)
+ */
+export const restartProjectApps = async (slug: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getRestartProjectAppsUrl(slug),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getStopProjectAppsUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/actions/stop`
+}
+
+/**
+ * @summary Stop every app of the project: one parent job, one child per app (PRJ-5, JOB-5)
+ */
+export const stopProjectApps = async (slug: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getStopProjectAppsUrl(slug),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getStartProjectAppsUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/actions/start`
+}
+
+/**
+ * @summary Start every app of the project: one parent job, one child per app (PRJ-5, JOB-5)
+ */
+export const startProjectApps = async (slug: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getStartProjectAppsUrl(slug),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getRebuildProjectAppsUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/actions/rebuild`
+}
+
+/**
+ * @summary Rebuild every app of the project: one parent job, one child per app (PRJ-5, JOB-5)
+ */
+export const rebuildProjectApps = async (slug: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getRebuildProjectAppsUrl(slug),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
 export const getCreateAppUrl = () => {
 
 
@@ -1712,6 +1810,69 @@ return apiFetch<JobRef>(getPutAppScaleUrl(name),
 
 
 
+export const getListAppDeploysUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/deploys`
+}
+
+/**
+ * @summary Deploy history and how to push (DEP-1, DEP-3)
+ */
+export const listAppDeploys = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<AppDeploys> => {
+
+  return apiFetch<AppDeploys>(getListAppDeploysUrl(name),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getDeployAppUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/deploys`
+}
+
+/**
+ * @summary Deploy a Docker image or a Git repository as a job (DEP-1, DEP-2)
+ */
+export const deployApp = async (name: string,
+    deployRequest: DeployRequest, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<JobRef>(getDeployAppUrl(name),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(deployRequest)
+  }
+);}
+
+
+
 export const getGetAppLogsUrl = (name: string,
     params?: GetAppLogsParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -1847,7 +2008,8 @@ export const getStreamJobUrl = (id: string,
 
 /**
  * `line` events have the line's seq as their id and a JobLine as data; `step` events carry a
- * JobStep, and a final `status` event the finished Job, after which the stream ends. Send
+ * JobStep; a `steps` event says the steps were replaced (reload the job); a final `status`
+ * event carries the finished Job, after which the stream ends. Send
  * `Last-Event-ID` (or `?after=`) to resume after a seq.
  * @summary The job's output over SSE, resumable with Last-Event-ID (JOB-3)
  */
@@ -1879,6 +2041,30 @@ export const getCancelJobUrl = (id: string,) => {
 export const cancelJob = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
 
   return apiFetch<void>(getCancelJobUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getRetryFailedJobsUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/jobs/${id}/retry-failed`
+}
+
+/**
+ * @summary Run a project action again for the apps that failed, as a new parent (JOB-5)
+ */
+export const retryFailedJobs = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getRetryFailedJobsUrl(id),
   {
     ...options,
     method: 'POST'
