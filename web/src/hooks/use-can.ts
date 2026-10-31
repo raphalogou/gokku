@@ -13,6 +13,8 @@ const minRole = {
   "project.members.write": "admin",
   "app.operate": "operator",
   "job.cancel": "operator",
+  "app.deploy": "operator",
+  "project.operate": "operator",
   "audit.export": "admin",
   "app.config.write": "operator",
   "app.domains.write": "operator",

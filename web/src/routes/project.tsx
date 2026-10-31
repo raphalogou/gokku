@@ -3,6 +3,7 @@ import { FolderX } from "lucide-react";
 import { useState } from "react";
 import { isRouteErrorResponse, Link, Outlet, useRouteError } from "react-router";
 import { Breadcrumbs } from "~/components/app/breadcrumbs";
+import { ProjectActions } from "~/components/app/project-actions";
 import { AddMemberDialog } from "~/components/app/project-members";
 import { RouteTabs } from "~/components/app/route-tabs";
 import { EmptyState } from "~/components/app/states";
@@ -39,14 +40,17 @@ export default function Project({ params }: Route.ComponentProps) {
           </div>
           {p.description ? <p className="mt-1 text-[15px] text-muted">{p.description}</p> : null}
         </div>
-        {canEdit ? (
-          <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={() => setAdding("service")}>
-              {strings.project.addService}
-            </Button>
-            <Button onClick={() => setAdding("app")}>{strings.project.addApp}</Button>
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-3">
+          <ProjectActions project={p} />
+          {canEdit ? (
+            <>
+              <Button variant="secondary" onClick={() => setAdding("service")}>
+                {strings.project.addService}
+              </Button>
+              <Button onClick={() => setAdding("app")}>{strings.project.addApp}</Button>
+            </>
+          ) : null}
+        </div>
       </header>
       <RouteTabs
         label={p.name}

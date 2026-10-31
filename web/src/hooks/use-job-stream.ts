@@ -44,13 +44,21 @@ export function useJobStream(job: JobDetail | undefined, push: (lines: ConsoleLi
         j ? { ...j, status: "running", steps: currentSteps } : j,
       );
     });
+    // A deploy whose output had no step markers becomes one step (DEP-2).
+    source.addEventListener("steps", (e) => {
+      currentSteps = [JSON.parse((e as MessageEvent<string>).data) as JobStep];
+      qc.setQueryData<JobDetail>(queryKeys.job(id), (j) => (j ? { ...j, steps: currentSteps } : j));
+    });
     source.addEventListener("status", (e) => {
       const final = JSON.parse((e as MessageEvent<string>).data) as JobDetail;
       qc.setQueryData(queryKeys.job(id), final);
       source.close();
       setConnected(false);
       void qc.invalidateQueries({ queryKey: queryKeys.jobs() });
-      if (final.app) void qc.invalidateQueries({ queryKey: queryKeys.app(final.app) });
+      // A destroyed or renamed app is gone under this name: drop it rather than refetch a 404.
+      if (final.app && final.status === "succeeded" && ["app.destroy", "app.rename"].includes(final.kind))
+        qc.removeQueries({ queryKey: queryKeys.app(final.app) });
+      else if (final.app) void qc.invalidateQueries({ queryKey: queryKeys.app(final.app) });
     });
     return () => source.close();
   }, [id, qc, push]);

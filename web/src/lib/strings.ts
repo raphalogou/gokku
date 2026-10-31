@@ -571,6 +571,19 @@ export const strings = {
     busy: "A job is running for this app.",
   },
 
+  projectActions: {
+    restart: "Restart all",
+    stop: "Stop all",
+    start: "Start all",
+    rebuild: "Rebuild all",
+    started: (action: string) => `${action} started.`,
+    confirmStopTitle: (p: string) => `Stop every app in ${p}?`,
+    confirmStopBody: "Their processes stop until you start them again. Protected apps are left running.",
+    confirmRebuildTitle: (p: string) => `Rebuild every app in ${p}?`,
+    confirmRebuildBody:
+      "Dokku builds each app again from its last source, two at a time. Protected apps are skipped.",
+  },
+
   job: {
     steps: "Steps",
     output: "Output",
@@ -598,6 +611,11 @@ export const strings = {
     jobsTitle: "Recent jobs",
     noJobs: "No jobs yet.",
     error: "Error",
+    apps: "Apps",
+    summary: (ok: number, failed: number, total: number) =>
+      failed > 0 ? `${failed} of ${total} failed.` : `${ok} of ${total} done.`,
+    retryFailed: "Retry failed",
+    retrying: "Retrying the apps that failed.",
   },
 
   logs: {
@@ -689,6 +707,44 @@ export const strings = {
     } as Record<string, string>,
     notFoundTitle: "App not found",
     notFoundBody: "There is no app with this name on the server. It may have been renamed or destroyed.",
+  },
+
+  deploy: {
+    readOnly: "You can view deploys. Deploying needs the operator role.",
+    gitTitle: "Push with git",
+    gitIntro: "Run these in your local repository.",
+    gitRemote: "git remote",
+    gitPush: "git push",
+    imageTitle: "Deploy a Docker image",
+    image: "Image",
+    imageHint: "Dokku pulls the image and runs it as this app.",
+    deployImage: "Deploy image",
+    repoTitle: "Deploy from a Git repository",
+    repoUrl: "Repository URL",
+    ref: "Branch or tag",
+    refHint: "Leave empty for the default branch.",
+    deployRepo: "Deploy repository",
+    deploying: "Starting…",
+    started: "Deploy started.",
+    historyTitle: "Deployment history",
+    historyEmpty: "No deploys yet. Push with git or deploy an image to start.",
+    columns: {
+      when: "When",
+      source: "Source",
+      ref: "Reference",
+      result: "Result",
+      duration: "Duration",
+      output: "Output",
+    },
+    sources: {
+      git: "git push",
+      image: "Docker image",
+      repository: "Git repository",
+      rebuild: "Rebuild",
+      observed: "Outside Gokku",
+    },
+    viewOutput: "View output",
+    noOutput: "No output",
   },
 
   services: {
