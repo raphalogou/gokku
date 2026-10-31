@@ -14,6 +14,9 @@ const minRole = {
   "app.operate": "operator",
   "job.cancel": "operator",
   "audit.export": "admin",
+  "app.config.write": "operator",
+  "app.secrets.reveal": "operator",
+  "project.env.write": "admin",
 } as const satisfies Record<string, Role>;
 
 const rank: Record<Role, number> = { viewer: 1, operator: 2, admin: 3 };

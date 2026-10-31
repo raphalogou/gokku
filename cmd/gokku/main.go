@@ -22,6 +22,7 @@ import (
 	"gokku/internal/dokku"
 	"gokku/internal/events"
 	"gokku/internal/jobs"
+	"gokku/internal/projects"
 	"gokku/internal/secrets"
 	"gokku/internal/server"
 	"gokku/internal/snapshot"
@@ -122,7 +123,7 @@ func serve(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	db, _, err := openState(ctx, cfg, log)
+	db, box, err := openState(ctx, cfg, log)
 	if err != nil {
 		return err
 	}
@@ -148,7 +149,7 @@ func serve(args []string) error {
 	defer func() { stop(); manager.Wait() }() // stop the workers even when serving fails
 	apiHandler, err := api.New(api.Options{
 		Auth: authSvc, DB: db, Audit: audit.New(db, log), Log: log, Snapshot: snap, Hub: hub,
-		Jobs: manager, Dokku: client, ServerName: serverName, DokkuHost: cfg.DokkuHost,
+		Jobs: manager, Dokku: client, Env: projects.NewEnv(db, box, client), ServerName: serverName, DokkuHost: cfg.DokkuHost,
 	})
 	if err != nil {
 		return err

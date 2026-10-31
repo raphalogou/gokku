@@ -97,6 +97,27 @@ func (e AppStatus) Valid() bool {
 	}
 }
 
+// Defines values for EnvStatus.
+const (
+	EnvStatusApplied    EnvStatus = "applied"
+	EnvStatusOverridden EnvStatus = "overridden"
+	EnvStatusPending    EnvStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the EnvStatus enum.
+func (e EnvStatus) Valid() bool {
+	switch e {
+	case EnvStatusApplied:
+		return true
+	case EnvStatusOverridden:
+		return true
+	case EnvStatusPending:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ErrorCode.
 const (
 	ErrorCodeAppProtected        ErrorCode = "app_protected"
@@ -110,11 +131,13 @@ const (
 	ErrorCodeInviteInvalid       ErrorCode = "invite_invalid"
 	ErrorCodeJobFinished         ErrorCode = "job_finished"
 	ErrorCodeLastAdmin           ErrorCode = "last_admin"
+	ErrorCodeManagedVariable     ErrorCode = "managed_variable"
 	ErrorCodeMethodNotAllowed    ErrorCode = "method_not_allowed"
 	ErrorCodeNotFound            ErrorCode = "not_found"
 	ErrorCodeNotInvited          ErrorCode = "not_invited"
 	ErrorCodeProjectExists       ErrorCode = "project_exists"
 	ErrorCodeRateLimited         ErrorCode = "rate_limited"
+	ErrorCodeReservedKey         ErrorCode = "reserved_key"
 	ErrorCodeSetupComplete       ErrorCode = "setup_complete"
 	ErrorCodeTokenNameTaken      ErrorCode = "token_name_taken"
 	ErrorCodeTooManyStreams      ErrorCode = "too_many_streams"
@@ -149,6 +172,8 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeLastAdmin:
 		return true
+	case ErrorCodeManagedVariable:
+		return true
 	case ErrorCodeMethodNotAllowed:
 		return true
 	case ErrorCodeNotFound:
@@ -158,6 +183,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeProjectExists:
 		return true
 	case ErrorCodeRateLimited:
+		return true
+	case ErrorCodeReservedKey:
 		return true
 	case ErrorCodeSetupComplete:
 		return true
@@ -559,6 +586,11 @@ type ActivityEntryResult string
 // ActivityEntrySource defines model for ActivityEntry.Source.
 type ActivityEntrySource string
 
+// AppConfig defines model for AppConfig.
+type AppConfig struct {
+	Vars []ConfigVar `json:"vars"`
+}
+
 // AppDetail defines model for AppDetail.
 type AppDetail struct {
 	Builder   string     `json:"builder"`
@@ -585,6 +617,12 @@ type AppDetail struct {
 
 	// Status Derived as in DESIGN.md "Status derivation" (APP-2)
 	Status AppStatus `json:"status"`
+}
+
+// AppEnvStatus defines model for AppEnvStatus.
+type AppEnvStatus struct {
+	App    string    `json:"app"`
+	Status EnvStatus `json:"status"`
 }
 
 // AppState defines model for AppState.
@@ -617,6 +655,11 @@ type AppSummary struct {
 	Status AppStatus `json:"status"`
 }
 
+// ApplyEnvRequest defines model for ApplyEnvRequest.
+type ApplyEnvRequest struct {
+	Restart *bool `json:"restart,omitempty"`
+}
+
 // AuditPage defines model for AuditPage.
 type AuditPage struct {
 	// Actors Every actor name in the log, for the user filter
@@ -642,6 +685,28 @@ type ChangePasswordRequest struct {
 	NewPassword Password `json:"new_password"`
 }
 
+// ConfigUpdated defines model for ConfigUpdated.
+type ConfigUpdated struct {
+	Config AppConfig `json:"config"`
+
+	// JobId The restart job
+	JobId *string `json:"job_id,omitempty"`
+}
+
+// ConfigVar defines model for ConfigVar.
+type ConfigVar struct {
+	Key string `json:"key"`
+
+	// ManagedBy service:<name> or project:<slug> when the value is set at its source, read-only here (CFG-3)
+	ManagedBy *string `json:"managed_by,omitempty"`
+
+	// Masked The key looks secret (CFG-1); reveal it to see the value
+	Masked bool `json:"masked"`
+
+	// Value Absent when masked
+	Value *string `json:"value,omitempty"`
+}
+
 // CreateProjectRequest defines model for CreateProjectRequest.
 type CreateProjectRequest struct {
 	Description *string `json:"description,omitempty"`
@@ -663,6 +728,9 @@ type Credentials struct {
 	Password Password `json:"password"`
 	Username string   `json:"username"`
 }
+
+// EnvStatus defines model for EnvStatus.
+type EnvStatus string
 
 // Error defines model for Error.
 type Error struct {
@@ -862,6 +930,22 @@ type ProjectDetail struct {
 	StatusCounts StatusCounts     `json:"status_counts"`
 }
 
+// ProjectEnv defines model for ProjectEnv.
+type ProjectEnv struct {
+	// Apps The member apps
+	Apps []string `json:"apps"`
+
+	// Reachable False when the statuses could not be read from Dokku
+	Reachable bool        `json:"reachable"`
+	Vars      []SharedVar `json:"vars"`
+}
+
+// ProjectEnvSaved defines model for ProjectEnvSaved.
+type ProjectEnvSaved struct {
+	Env   ProjectEnv `json:"env"`
+	JobId *string    `json:"job_id,omitempty"`
+}
+
 // ProjectRef defines model for ProjectRef.
 type ProjectRef struct {
 	Name string `json:"name"`
@@ -882,6 +966,26 @@ type ProjectSummary struct {
 	Services     []ServiceRef `json:"services"`
 	Slug         string       `json:"slug"`
 	StatusCounts StatusCounts `json:"status_counts"`
+}
+
+// PutProjectEnvRequest defines model for PutProjectEnvRequest.
+type PutProjectEnvRequest struct {
+	// Apply Write the variables into the member apps now
+	Apply *bool `json:"apply,omitempty"`
+
+	// Restart Restart each changed app once after applying (SHV-3)
+	Restart *bool            `json:"restart,omitempty"`
+	Vars    []SharedVarInput `json:"vars"`
+}
+
+// RevealRequest defines model for RevealRequest.
+type RevealRequest struct {
+	Keys []string `json:"keys"`
+}
+
+// RevealedValues defines model for RevealedValues.
+type RevealedValues struct {
+	Values map[string]string `json:"values"`
 }
 
 // Role defines model for Role.
@@ -960,6 +1064,28 @@ type SetupStatus struct {
 	SetupRequired     bool `json:"setup_required"`
 }
 
+// SharedVar defines model for SharedVar.
+type SharedVar struct {
+	// Apps The variable's status in each member app
+	Apps      []AppEnvStatus `json:"apps"`
+	Key       string         `json:"key"`
+	Masked    bool           `json:"masked"`
+	Secret    bool           `json:"secret"`
+	UpdatedAt *time.Time     `json:"updated_at,omitempty"`
+
+	// Value Absent for secret values
+	Value *string `json:"value,omitempty"`
+}
+
+// SharedVarInput defines model for SharedVarInput.
+type SharedVarInput struct {
+	Key    string `json:"key"`
+	Secret *bool  `json:"secret,omitempty"`
+
+	// Value Omit to keep the stored value of an existing key
+	Value *string `json:"value,omitempty"`
+}
+
 // StatusCounts defines model for StatusCounts.
 type StatusCounts struct {
 	Deploying int `json:"deploying"`
@@ -994,6 +1120,18 @@ type TokenCreated struct {
 	// Secret The full token (gk_...). Shown once.
 	Secret string `json:"secret"`
 	Token  Token  `json:"token"`
+}
+
+// UpdateConfigRequest defines model for UpdateConfigRequest.
+type UpdateConfigRequest struct {
+	// Restart Restart the app once after writing
+	Restart *bool `json:"restart,omitempty"`
+
+	// Set Variables to set
+	Set *map[string]string `json:"set,omitempty"`
+
+	// Unset Keys to remove
+	Unset *[]string `json:"unset,omitempty"`
 }
 
 // UpdateMeRequest defines model for UpdateMeRequest.
@@ -1111,6 +1249,12 @@ type DeleteProjectParams struct {
 	Confirm string `form:"confirm" json:"confirm"`
 }
 
+// UpdateAppConfigJSONRequestBody defines body for UpdateAppConfig for application/json ContentType.
+type UpdateAppConfigJSONRequestBody = UpdateConfigRequest
+
+// RevealAppConfigJSONRequestBody defines body for RevealAppConfig for application/json ContentType.
+type RevealAppConfigJSONRequestBody = RevealRequest
+
 // AcceptInviteJSONRequestBody defines body for AcceptInvite for application/json ContentType.
 type AcceptInviteJSONRequestBody = AcceptInviteRequest
 
@@ -1128,6 +1272,15 @@ type CreateProjectJSONRequestBody = CreateProjectRequest
 
 // UpdateProjectJSONRequestBody defines body for UpdateProject for application/json ContentType.
 type UpdateProjectJSONRequestBody = UpdateProjectRequest
+
+// PutProjectEnvJSONRequestBody defines body for PutProjectEnv for application/json ContentType.
+type PutProjectEnvJSONRequestBody = PutProjectEnvRequest
+
+// ApplyProjectEnvJSONRequestBody defines body for ApplyProjectEnv for application/json ContentType.
+type ApplyProjectEnvJSONRequestBody = ApplyEnvRequest
+
+// RevealProjectEnvJSONRequestBody defines body for RevealProjectEnv for application/json ContentType.
+type RevealProjectEnvJSONRequestBody = RevealRequest
 
 // CompleteSetupJSONRequestBody defines body for CompleteSetup for application/json ContentType.
 type CompleteSetupJSONRequestBody = Credentials

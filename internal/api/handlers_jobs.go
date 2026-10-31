@@ -32,7 +32,6 @@ var protectedActions = []string{dokku.ActionStop, dokku.ActionRebuild}
 // appAction returns the handler of POST /apps/{name}/actions/<action> (APP-6): it queues a
 // job and answers 202 with its id.
 func (a *API) appAction(action string) HandlerFunc {
-	k := lifecycleKinds[action]
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx := r.Context()
 		state := a.snap.State()
@@ -54,42 +53,65 @@ func (a *API) appAction(action string) HandlerFunc {
 			}
 		}
 
-		members, err := a.db.Memberships(ctx)
-		if err != nil {
-			return err
-		}
-		projectID := members.Apps[name]
-		var projectSlug string
-		if projectID != "" {
-			if p, err := a.db.ProjectByID(ctx, projectID); err == nil {
-				projectSlug = p.Slug
-			}
-		}
-		actor := authz.FromContext(ctx)
-		job, err := a.jobs.Submit(ctx, jobs.Spec{
-			Kind: k.kind, Title: k.step + " " + name, App: name, ProjectID: projectID, Actor: actor,
-			Steps: []string{k.step},
-			Run: func(ctx context.Context, t *jobs.Task) error {
-				return a.dokku.Lifecycle(ctx, action, name, t.Line)
-			},
-			Finished: func(ctx context.Context, job store.Job) {
-				entry := audit.Entry{
-					Action: "apps:" + action, TargetType: "app", TargetName: name, ProjectSlug: projectSlug,
-					JobID: job.ID, Result: audit.ResultOK,
-				}
-				if job.Status != store.JobSucceeded {
-					entry.Result = audit.ResultFail
-					entry.Detail = map[string]any{"status": job.Status}
-				}
-				a.audit.Record(ctx, actor, entry)
-			},
-		})
+		job, err := a.submitLifecycle(ctx, action, name)
 		if err != nil {
 			return err
 		}
 		writeJSON(w, http.StatusAccepted, JobRef{JobId: job.ID})
 		return nil
 	}
+}
+
+// submitLifecycle queues ps:<action> for app as a job, audited when it ends (APP-6, ACT-1).
+func (a *API) submitLifecycle(ctx context.Context, action, name string) (store.Job, error) {
+	k := lifecycleKinds[action]
+	projectID, projectSlug, err := a.appProject(ctx, name)
+	if err != nil {
+		return store.Job{}, err
+	}
+	actor := authz.FromContext(ctx)
+	return a.jobs.Submit(ctx, jobs.Spec{
+		Kind: k.kind, Title: k.step + " " + name, App: name, ProjectID: projectID, Actor: actor,
+		Steps: []string{k.step},
+		Run: func(ctx context.Context, t *jobs.Task) error {
+			return a.dokku.Lifecycle(ctx, action, name, t.Line)
+		},
+		Finished: func(ctx context.Context, job store.Job) {
+			a.auditJob(ctx, actor, job, audit.Entry{
+				Action: "apps:" + action, TargetType: "app", TargetName: name, ProjectSlug: projectSlug,
+			})
+		},
+	})
+}
+
+// auditJob records e for a finished job, as a failure unless it succeeded (ACT-1).
+func (a *API) auditJob(ctx context.Context, actor *authz.Principal, job store.Job, e audit.Entry) {
+	e.JobID, e.Result = job.ID, audit.ResultOK
+	if job.Status != store.JobSucceeded {
+		e.Result = audit.ResultFail
+		if e.Detail == nil {
+			e.Detail = map[string]any{}
+		}
+		e.Detail["status"] = job.Status
+	}
+	a.audit.Record(ctx, actor, e)
+}
+
+// appProject returns the id and slug of the app's project, or empty strings.
+func (a *API) appProject(ctx context.Context, app string) (string, string, error) {
+	members, err := a.db.Memberships(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	id := members.Apps[app]
+	if id == "" {
+		return "", "", nil
+	}
+	p, err := a.db.ProjectByID(ctx, id)
+	if err != nil {
+		return id, "", nil //nolint:nilerr // a project deleted meanwhile leaves the app unassigned
+	}
+	return id, p.Slug, nil
 }
 
 // protectedApps reads the protected_apps setting, a JSON array of app names (SET-2).

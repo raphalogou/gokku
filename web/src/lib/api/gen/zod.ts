@@ -602,6 +602,7 @@ export const UpdateProjectResponse = zod.object({
 
 
 /**
+ * When managed variables must be removed from member apps, the answer is 202 with the job.
  * @summary Delete the project; its apps and services become unassigned (PRJ-4)
  */
 export const DeleteProjectParams = zod.object({
@@ -612,10 +613,13 @@ export const DeleteProjectQueryParams = zod.object({
   "confirm": zod.string().describe('Must equal the slug')
 })
 
-export const DeleteProjectResponse = zod.void()
+export const DeleteProjectResponse = zod.object({
+  "job_id": zod.string()
+})
 
 
 /**
+ * When shared variables must be written or removed (SHV-2), the answer is 202 with the job.
  * @summary Add an app to the project, moving it out of any other project (PRJ-2)
  */
 export const AddProjectAppParams = zod.object({
@@ -623,10 +627,13 @@ export const AddProjectAppParams = zod.object({
   "app": zod.string()
 })
 
-export const AddProjectAppResponse = zod.void()
+export const AddProjectAppResponse = zod.object({
+  "job_id": zod.string()
+})
 
 
 /**
+ * When managed variables must be removed from it (SHV-2), the answer is 202 with the job.
  * @summary Release an app from the project (PRJ-2)
  */
 export const RemoveProjectAppParams = zod.object({
@@ -634,7 +641,9 @@ export const RemoveProjectAppParams = zod.object({
   "app": zod.string()
 })
 
-export const RemoveProjectAppResponse = zod.void()
+export const RemoveProjectAppResponse = zod.object({
+  "job_id": zod.string()
+})
 
 
 /**
@@ -778,6 +787,173 @@ export const RebuildAppParams = zod.object({
 
 export const RebuildAppResponse = zod.object({
   "job_id": zod.string()
+})
+
+
+/**
+ * @summary The app's variables; secret-looking values are masked (CFG-1, CFG-3)
+ */
+export const GetAppConfigParams = zod.object({
+  "name": zod.string()
+})
+
+export const GetAppConfigResponse = zod.object({
+  "vars": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string().nullish().describe('Absent when masked'),
+  "masked": zod.boolean().describe('The key looks secret (CFG-1); reveal it to see the value'),
+  "managed_by": zod.string().nullish().describe('service:<name> or project:<slug> when the value is set at its source, read-only here (CFG-3)')
+}))
+})
+
+
+/**
+ * @summary Set and unset variables without a restart, then restart once if asked (CFG-4)
+ */
+export const UpdateAppConfigParams = zod.object({
+  "name": zod.string()
+})
+
+export const UpdateAppConfigBody = zod.object({
+  "set": zod.record(zod.string(), zod.string()).optional().describe('Variables to set'),
+  "unset": zod.array(zod.string()).optional().describe('Keys to remove'),
+  "restart": zod.boolean().optional().describe('Restart the app once after writing')
+})
+
+export const UpdateAppConfigResponse = zod.object({
+  "config": zod.object({
+  "vars": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string().nullish().describe('Absent when masked'),
+  "masked": zod.boolean().describe('The key looks secret (CFG-1); reveal it to see the value'),
+  "managed_by": zod.string().nullish().describe('service:<name> or project:<slug> when the value is set at its source, read-only here (CFG-3)')
+}))
+}),
+  "job_id": zod.string().nullish().describe('The restart job')
+})
+
+
+/**
+ * @summary Show masked values; audited with the keys only (CFG-2)
+ */
+export const RevealAppConfigParams = zod.object({
+  "name": zod.string()
+})
+
+export const revealAppConfigBodyKeysMax = 100;
+
+
+
+export const RevealAppConfigBody = zod.object({
+  "keys": zod.array(zod.string()).min(1).max(revealAppConfigBodyKeysMax)
+})
+
+export const RevealAppConfigResponse = zod.object({
+  "values": zod.record(zod.string(), zod.string())
+})
+
+
+/**
+ * @summary Shared variables, with each one's status in each member app (SHV-6, SHV-7)
+ */
+export const GetProjectEnvParams = zod.object({
+  "slug": zod.string()
+})
+
+export const GetProjectEnvResponse = zod.object({
+  "vars": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string().nullish().describe('Absent for secret values'),
+  "secret": zod.boolean(),
+  "masked": zod.boolean(),
+  "updated_at": zod.iso.datetime({"offset":true}).nullish(),
+  "apps": zod.array(zod.object({
+  "app": zod.string(),
+  "status": zod.enum(['applied', 'overridden', 'pending'])
+})).describe('The variable\'s status in each member app')
+})),
+  "apps": zod.array(zod.string()).describe('The member apps'),
+  "reachable": zod.boolean().describe('False when the statuses could not be read from Dokku')
+})
+
+
+/**
+ * @summary Replace the shared variables; optionally apply them as a job (SHV-4, SHV-5)
+ */
+export const PutProjectEnvParams = zod.object({
+  "slug": zod.string()
+})
+
+export const putProjectEnvBodyVarsItemKeyRegExp = new RegExp('^[A-Z_][A-Z0-9_]{0,127}$');
+export const putProjectEnvBodyVarsItemValueMax = 65536;
+
+export const putProjectEnvBodyVarsMax = 200;
+
+
+
+export const PutProjectEnvBody = zod.object({
+  "vars": zod.array(zod.object({
+  "key": zod.string().regex(putProjectEnvBodyVarsItemKeyRegExp),
+  "value": zod.string().max(putProjectEnvBodyVarsItemValueMax).optional().describe('Omit to keep the stored value of an existing key'),
+  "secret": zod.boolean().optional()
+})).max(putProjectEnvBodyVarsMax),
+  "apply": zod.boolean().optional().describe('Write the variables into the member apps now'),
+  "restart": zod.boolean().optional().describe('Restart each changed app once after applying (SHV-3)')
+})
+
+export const PutProjectEnvResponse = zod.object({
+  "env": zod.object({
+  "vars": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string().nullish().describe('Absent for secret values'),
+  "secret": zod.boolean(),
+  "masked": zod.boolean(),
+  "updated_at": zod.iso.datetime({"offset":true}).nullish(),
+  "apps": zod.array(zod.object({
+  "app": zod.string(),
+  "status": zod.enum(['applied', 'overridden', 'pending'])
+})).describe('The variable\'s status in each member app')
+})),
+  "apps": zod.array(zod.string()).describe('The member apps'),
+  "reachable": zod.boolean().describe('False when the statuses could not be read from Dokku')
+}),
+  "job_id": zod.string().nullish()
+})
+
+
+/**
+ * @summary Write the shared variables into every member app again (SHV-6 Reapply)
+ */
+export const ApplyProjectEnvParams = zod.object({
+  "slug": zod.string()
+})
+
+export const ApplyProjectEnvBody = zod.object({
+  "restart": zod.boolean().optional()
+})
+
+export const ApplyProjectEnvResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Show secret shared values; audited with the keys only (SHV-5)
+ */
+export const RevealProjectEnvParams = zod.object({
+  "slug": zod.string()
+})
+
+export const revealProjectEnvBodyKeysMax = 100;
+
+
+
+export const RevealProjectEnvBody = zod.object({
+  "keys": zod.array(zod.string()).min(1).max(revealProjectEnvBodyKeysMax)
+})
+
+export const RevealProjectEnvResponse = zod.object({
+  "values": zod.record(zod.string(), zod.string())
 })
 
 

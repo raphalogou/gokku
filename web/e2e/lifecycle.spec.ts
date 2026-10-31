@@ -88,7 +88,7 @@ test("activity lists the jobs and exports CSV (ACT-1, ACT-2)", async ({ page }) 
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Activity" }).click();
   const table = page.getByRole("table", { name: "Events" });
   await expect(table.getByRole("row", { name: /apps:rebuild.*status-page.*Failed/ }).first()).toBeVisible();
-  await expect(table.getByRole("row", { name: /apps:restart.*blog-api.*Succeeded/ })).toBeVisible();
+  await expect(table.getByRole("row", { name: /apps:restart.*blog-api.*Succeeded/ }).first()).toBeVisible();
 
   await page.getByLabel("Result").click();
   await page.getByRole("option", { name: "Failed" }).click();

@@ -425,9 +425,15 @@ paths:
       operationId: deleteProject
       tags: [projects]
       summary: "Delete the project; its apps and services become unassigned (PRJ-4)"
+      description: "When managed variables must be removed from member apps, the answer is 202 with the job."
       parameters:
         - { name: confirm, in: query, required: true, schema: { type: string }, description: Must equal the slug }
       responses:
+        "202":
+          description: Deleted; a job removes the managed variables
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
         "204": { description: Deleted }
         "400": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
@@ -441,7 +447,13 @@ paths:
       operationId: addProjectApp
       tags: [projects]
       summary: "Add an app to the project, moving it out of any other project (PRJ-2)"
+      description: "When shared variables must be written or removed (SHV-2), the answer is 202 with the job."
       responses:
+        "202":
+          description: The app is in the project; a job updates its shared variables
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
         "204": { description: The app is in the project }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
@@ -449,7 +461,13 @@ paths:
       operationId: removeProjectApp
       tags: [projects]
       summary: Release an app from the project (PRJ-2)
+      description: "When managed variables must be removed from it (SHV-2), the answer is 202 with the job."
       responses:
+        "202":
+          description: The app is unassigned; a job removes its managed variables
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
         "204": { description: The app is unassigned }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
@@ -587,6 +605,140 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "503": { $ref: "#/components/responses/Error" }
+
+  /apps/{name}/config:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getAppConfig
+      tags: [apps]
+      summary: The app's variables; secret-looking values are masked (CFG-1, CFG-3)
+      responses:
+        "200":
+          description: Variables, sorted by key
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppConfig" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateAppConfig
+      tags: [apps]
+      summary: "Set and unset variables without a restart, then restart once if asked (CFG-4)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateConfigRequest" }
+      responses:
+        "200":
+          description: The new config, and the restart job if one was asked for
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfigUpdated" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /apps/{name}/config/reveal:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: revealAppConfig
+      tags: [apps]
+      summary: "Show masked values; audited with the keys only (CFG-2)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RevealRequest" }
+      responses:
+        "200":
+          description: The values of the asked keys that exist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevealedValues" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /projects/{slug}/env:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getProjectEnv
+      tags: [projects]
+      summary: "Shared variables, with each one's status in each member app (SHV-6, SHV-7)"
+      responses:
+        "200":
+          description: Shared variables
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectEnv" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      operationId: putProjectEnv
+      tags: [projects]
+      summary: "Replace the shared variables; optionally apply them as a job (SHV-4, SHV-5)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PutProjectEnvRequest" }
+      responses:
+        "200":
+          description: The saved variables, and the apply job if one was asked for
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectEnvSaved" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /projects/{slug}/env/apply:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: applyProjectEnv
+      tags: [projects]
+      summary: "Write the shared variables into every member app again (SHV-6 Reapply)"
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApplyEnvRequest" }
+      responses:
+        "202":
+          description: The apply job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /projects/{slug}/env/reveal:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: revealProjectEnv
+      tags: [projects]
+      summary: "Show secret shared values; audited with the keys only (SHV-5)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RevealRequest" }
+      responses:
+        "200":
+          description: The values of the asked keys that exist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevealedValues" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
 
   /apps/{name}/logs:
     parameters:
@@ -798,6 +950,8 @@ components:
         - app_protected
         - job_finished
         - too_many_streams
+        - managed_variable
+        - reserved_key
         - internal
 
     Role:
@@ -1280,3 +1434,130 @@ components:
           type: array
           items: { type: string }
           description: Every actor name in the log, for the user filter
+
+    ConfigVar:
+      type: object
+      required: [key, masked]
+      properties:
+        key: { type: string }
+        value: { type: string, nullable: true, description: Absent when masked }
+        masked: { type: boolean, description: "The key looks secret (CFG-1); reveal it to see the value" }
+        managed_by:
+          type: string
+          nullable: true
+          description: "service:<name> or project:<slug> when the value is set at its source, read-only here (CFG-3)"
+
+    AppConfig:
+      type: object
+      required: [vars]
+      properties:
+        vars:
+          type: array
+          items: { $ref: "#/components/schemas/ConfigVar" }
+
+    UpdateConfigRequest:
+      type: object
+      properties:
+        set:
+          type: object
+          additionalProperties: { type: string }
+          description: Variables to set
+        unset:
+          type: array
+          items: { type: string }
+          description: Keys to remove
+        restart: { type: boolean, description: Restart the app once after writing }
+
+    ConfigUpdated:
+      type: object
+      required: [config]
+      properties:
+        config: { $ref: "#/components/schemas/AppConfig" }
+        job_id: { type: string, nullable: true, description: The restart job }
+
+    RevealRequest:
+      type: object
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          items: { type: string }
+          minItems: 1
+          maxItems: 100
+
+    RevealedValues:
+      type: object
+      required: [values]
+      properties:
+        values:
+          type: object
+          additionalProperties: { type: string }
+
+    EnvStatus:
+      type: string
+      enum: [applied, overridden, pending]
+
+    AppEnvStatus:
+      type: object
+      required: [app, status]
+      properties:
+        app: { type: string }
+        status: { $ref: "#/components/schemas/EnvStatus" }
+
+    SharedVar:
+      type: object
+      required: [key, secret, masked, apps]
+      properties:
+        key: { type: string }
+        value: { type: string, nullable: true, description: Absent for secret values }
+        secret: { type: boolean }
+        masked: { type: boolean }
+        updated_at: { type: string, format: date-time, nullable: true }
+        apps:
+          type: array
+          items: { $ref: "#/components/schemas/AppEnvStatus" }
+          description: The variable's status in each member app
+
+    ProjectEnv:
+      type: object
+      required: [vars, apps, reachable]
+      properties:
+        vars:
+          type: array
+          items: { $ref: "#/components/schemas/SharedVar" }
+        apps:
+          type: array
+          items: { type: string }
+          description: The member apps
+        reachable: { type: boolean, description: False when the statuses could not be read from Dokku }
+
+    SharedVarInput:
+      type: object
+      required: [key]
+      properties:
+        key: { type: string, pattern: "^[A-Z_][A-Z0-9_]{0,127}$" }
+        value: { type: string, maxLength: 65536, description: Omit to keep the stored value of an existing key }
+        secret: { type: boolean }
+
+    PutProjectEnvRequest:
+      type: object
+      required: [vars]
+      properties:
+        vars:
+          type: array
+          items: { $ref: "#/components/schemas/SharedVarInput" }
+          maxItems: 200
+        apply: { type: boolean, description: Write the variables into the member apps now }
+        restart: { type: boolean, description: Restart each changed app once after applying (SHV-3) }
+
+    ProjectEnvSaved:
+      type: object
+      required: [env]
+      properties:
+        env: { $ref: "#/components/schemas/ProjectEnv" }
+        job_id: { type: string, nullable: true }
+
+    ApplyEnvRequest:
+      type: object
+      properties:
+        restart: { type: boolean }

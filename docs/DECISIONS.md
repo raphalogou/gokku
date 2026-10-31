@@ -159,3 +159,35 @@ One entry per decision: date, decision, reason, alternatives.
 
 - **Decision:** stop and rebuild are refused with `app_protected` for apps in `protected_apps` (`SET-2`) as
   soon as those actions exist. The Settings screen that edits the list comes in M6.
+
+## 2026-10-31: Config writes go through config:import on stdin
+
+- **Decision:** set config with `dokku config:import --no-restart --format json <app> -` and the values as JSON
+  on stdin; remove with `config:unset --no-restart` (`CFG-4`). Its output, which repeats the values, is never
+  logged or stored. Reads use `config:export --format json`.
+- **Reason:** SPEC section 6 asks to keep secrets out of process arguments where Dokku allows it; Dokku 0.38
+  has `config:import`, which reads stdin.
+
+## 2026-10-31: Reveal is a POST
+
+- **Decision:** masked values are read with `POST /apps/{name}/config/reveal` and
+  `POST /projects/{slug}/env/reveal`, `{"keys": [...]}`, both requiring `app.secrets.reveal` and audited
+  with the keys only (`CFG-2`, `SHV-5`). SPEC section 8 lists only `GET/PATCH /apps/{name}/config`.
+- **Reason:** revealing has a side effect (the audit entry) and should not be cached or prefetched.
+
+## 2026-10-31: Managed by a service means holding its connection string
+
+- **Decision:** `managed_by: service:<name>` is set when a variable's value equals a linked service's DSN,
+  read with `<type>:info <service> --dsn` per linked service when the config is read (`CFG-3`).
+  `project:<slug>` is set while the provenance row exists and the value's hash matches it.
+
+## 2026-10-31: Shared variable writes run as jobs
+
+- **Decision:** "Save and apply", Reapply, adding or removing an app with shared variables, and deleting a
+  project with managed variables each run one job (`project.env`) with one step per app and, if asked, a
+  restart step for the apps that changed (`SHV-3`). The membership and delete endpoints answer 202 with the
+  job when there is something to write, 204 otherwise. Job output names keys, never values. Datastore link
+  keys (`DATABASE_URL`, `REDIS_URL`, ...) are reserved for the installed datastores (`SHV-4`), from each
+  plugin's default alias.
+- **Note:** the mockup's Project Settings says deleting a project means "shared variables stop being
+  applied"; SPEC `PRJ-4` says the managed variables are removed from member apps, which wins.

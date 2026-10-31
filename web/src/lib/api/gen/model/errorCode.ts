@@ -38,5 +38,7 @@ export const ErrorCode = {
   app_protected: 'app_protected',
   job_finished: 'job_finished',
   too_many_streams: 'too_many_streams',
+  managed_variable: 'managed_variable',
+  reserved_key: 'reserved_key',
   internal: 'internal',
 } as const;

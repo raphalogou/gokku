@@ -17,14 +17,14 @@ export default [
       route("apps", "routes/project-apps.tsx"),
       route("services", "routes/project-services.tsx"),
       // Tabs of later milestones.
-      route("config", "routes/later-tab.tsx", { id: "project-config" }),
+      route("config", "routes/project-config.tsx"),
       route("activity", "routes/project-activity.tsx"),
       route("settings", "routes/later-tab.tsx", { id: "project-settings" }),
     ]),
     route("apps", "routes/apps.tsx"),
     route("apps/:name", "routes/app.tsx", [
       index("routes/app-overview.tsx"),
-      route("config", "routes/later-tab.tsx", { id: "app-config" }),
+      route("config", "routes/app-config.tsx"),
       route("domains", "routes/later-tab.tsx", { id: "app-domains" }),
       route("logs", "routes/app-logs.tsx"),
       route("scaling", "routes/later-tab.tsx", { id: "app-scaling" }),

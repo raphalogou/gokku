@@ -5,9 +5,7 @@ import { EmptyState } from "~/components/app/states";
 import { strings } from "~/lib/strings";
 
 const titles: Record<string, string> = {
-  "project-config": strings.project.tabs.config,
   "project-settings": strings.project.tabs.settings,
-  "app-config": strings.app.tabs.config,
   "app-domains": strings.app.tabs.domains,
   "app-scaling": strings.app.tabs.scaling,
   "app-deploy": strings.app.tabs.deploy,

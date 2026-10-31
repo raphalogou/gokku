@@ -23,6 +23,8 @@ import (
 	"gokku/internal/dokku"
 	"gokku/internal/events"
 	"gokku/internal/jobs"
+	"gokku/internal/projects"
+	"gokku/internal/secrets"
 	"gokku/internal/snapshot"
 	"gokku/internal/store"
 )
@@ -63,6 +65,10 @@ func newEnv(t *testing.T) *env {
 		t.Fatal(err)
 	}
 	client := dokku.NewClient(fake, log)
+	box, err := secrets.New(bytes.Repeat([]byte{7}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
 	manager := jobs.New(jobs.Options{DB: db, Hub: hub, Log: log, Changed: func(string) { snap.Poke() }})
 	jobsCtx, stopJobs := context.WithCancel(context.Background())
 	if err := manager.Start(jobsCtx); err != nil {
@@ -71,7 +77,7 @@ func newEnv(t *testing.T) *env {
 	t.Cleanup(func() { stopJobs(); manager.Wait() })
 	a, err := New(Options{
 		Auth: svc, DB: db, Audit: audit.New(db, log), Log: log, Snapshot: snap, Hub: hub,
-		Jobs: manager, Dokku: client, ServerName: "dokku-01", Heartbeat: 50 * time.Millisecond,
+		Jobs: manager, Dokku: client, Env: projects.NewEnv(db, box, client), ServerName: "dokku-01", Heartbeat: 50 * time.Millisecond,
 	})
 	if err != nil {
 		t.Fatal(err)

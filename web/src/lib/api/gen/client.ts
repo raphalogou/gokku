@@ -13,10 +13,13 @@
  */
 import type {
   AcceptInviteRequest,
+  AppConfig,
   AppDetail,
   AppSummary,
+  ApplyEnvRequest,
   AuditPage,
   ChangePasswordRequest,
+  ConfigUpdated,
   CreateProjectRequest,
   CreateTokenRequest,
   Credentials,
@@ -35,7 +38,12 @@ import type {
   Me,
   PluginList,
   ProjectDetail,
+  ProjectEnv,
+  ProjectEnvSaved,
   ProjectSummary,
+  PutProjectEnvRequest,
+  RevealRequest,
+  RevealedValues,
   ServerInfo,
   ServiceSummary,
   Session,
@@ -44,6 +52,7 @@ import type {
   StreamJobParams,
   Token,
   TokenCreated,
+  UpdateConfigRequest,
   UpdateMeRequest,
   UpdateProjectRequest,
   UpdateUserRequest,
@@ -825,12 +834,13 @@ export const getDeleteProjectUrl = (slug: string,
 }
 
 /**
+ * When managed variables must be removed from member apps, the answer is 202 with the job.
  * @summary Delete the project; its apps and services become unassigned (PRJ-4)
  */
 export const deleteProject = async (slug: string,
-    params: DeleteProjectParams, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+    params: DeleteProjectParams, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef | void> => {
 
-  return apiFetch<void>(getDeleteProjectUrl(slug,params),
+  return apiFetch<JobRef | void>(getDeleteProjectUrl(slug,params),
   {
     ...options,
     method: 'DELETE'
@@ -851,12 +861,13 @@ export const getAddProjectAppUrl = (slug: string,
 }
 
 /**
+ * When shared variables must be written or removed (SHV-2), the answer is 202 with the job.
  * @summary Add an app to the project, moving it out of any other project (PRJ-2)
  */
 export const addProjectApp = async (slug: string,
-    app: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+    app: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef | void> => {
 
-  return apiFetch<void>(getAddProjectAppUrl(slug,app),
+  return apiFetch<JobRef | void>(getAddProjectAppUrl(slug,app),
   {
     ...options,
     method: 'PUT'
@@ -877,12 +888,13 @@ export const getRemoveProjectAppUrl = (slug: string,
 }
 
 /**
+ * When managed variables must be removed from it (SHV-2), the answer is 202 with the job.
  * @summary Release an app from the project (PRJ-2)
  */
 export const removeProjectApp = async (slug: string,
-    app: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+    app: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef | void> => {
 
-  return apiFetch<void>(getRemoveProjectAppUrl(slug,app),
+  return apiFetch<JobRef | void>(getRemoveProjectAppUrl(slug,app),
   {
     ...options,
     method: 'DELETE'
@@ -1109,6 +1121,249 @@ export const rebuildApp = async (name: string, options?: Parameters<typeof apiFe
     method: 'POST'
 
 
+  }
+);}
+
+
+
+export const getGetAppConfigUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/config`
+}
+
+/**
+ * @summary The app's variables; secret-looking values are masked (CFG-1, CFG-3)
+ */
+export const getAppConfig = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<AppConfig> => {
+
+  return apiFetch<AppConfig>(getGetAppConfigUrl(name),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getUpdateAppConfigUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/config`
+}
+
+/**
+ * @summary Set and unset variables without a restart, then restart once if asked (CFG-4)
+ */
+export const updateAppConfig = async (name: string,
+    updateConfigRequest: UpdateConfigRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ConfigUpdated> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<ConfigUpdated>(getUpdateAppConfigUrl(name),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateConfigRequest)
+  }
+);}
+
+
+
+export const getRevealAppConfigUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/config/reveal`
+}
+
+/**
+ * @summary Show masked values; audited with the keys only (CFG-2)
+ */
+export const revealAppConfig = async (name: string,
+    revealRequest: RevealRequest, options?: Parameters<typeof apiFetch>[1]): Promise<RevealedValues> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<RevealedValues>(getRevealAppConfigUrl(name),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(revealRequest)
+  }
+);}
+
+
+
+export const getGetProjectEnvUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/env`
+}
+
+/**
+ * @summary Shared variables, with each one's status in each member app (SHV-6, SHV-7)
+ */
+export const getProjectEnv = async (slug: string, options?: Parameters<typeof apiFetch>[1]): Promise<ProjectEnv> => {
+
+  return apiFetch<ProjectEnv>(getGetProjectEnvUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getPutProjectEnvUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/env`
+}
+
+/**
+ * @summary Replace the shared variables; optionally apply them as a job (SHV-4, SHV-5)
+ */
+export const putProjectEnv = async (slug: string,
+    putProjectEnvRequest: PutProjectEnvRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ProjectEnvSaved> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<ProjectEnvSaved>(getPutProjectEnvUrl(slug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(putProjectEnvRequest)
+  }
+);}
+
+
+
+export const getApplyProjectEnvUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/env/apply`
+}
+
+/**
+ * @summary Write the shared variables into every member app again (SHV-6 Reapply)
+ */
+export const applyProjectEnv = async (slug: string,
+    applyEnvRequest?: ApplyEnvRequest, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<JobRef>(getApplyProjectEnvUrl(slug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(applyEnvRequest)
+  }
+);}
+
+
+
+export const getRevealProjectEnvUrl = (slug: string,) => {
+
+
+
+
+  return `/api/v1/projects/${slug}/env/reveal`
+}
+
+/**
+ * @summary Show secret shared values; audited with the keys only (SHV-5)
+ */
+export const revealProjectEnv = async (slug: string,
+    revealRequest: RevealRequest, options?: Parameters<typeof apiFetch>[1]): Promise<RevealedValues> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<RevealedValues>(getRevealProjectEnvUrl(slug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(revealRequest)
   }
 );}
 

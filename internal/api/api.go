@@ -14,6 +14,7 @@ import (
 	"gokku/internal/dokku"
 	"gokku/internal/events"
 	"gokku/internal/jobs"
+	"gokku/internal/projects"
 	"gokku/internal/snapshot"
 	"gokku/internal/store"
 )
@@ -30,6 +31,7 @@ type API struct {
 	hub        *events.Hub
 	jobs       *jobs.Manager
 	dokku      *dokku.Client
+	env        *projects.Env
 	logStreams *streamLimiter
 	serverName string
 	dokkuHost  string
@@ -48,6 +50,7 @@ type Options struct {
 	Hub      *events.Hub
 	Jobs     *jobs.Manager
 	Dokku    *dokku.Client
+	Env      *projects.Env
 	// ServerName is shown in the UI, for example the host name of the Dokku server.
 	ServerName string
 	// DokkuHost is the host in git remote instructions; empty means the request host.
@@ -60,7 +63,7 @@ type Options struct {
 func New(opts Options) (*API, error) {
 	a := &API{
 		auth: opts.Auth, db: opts.DB, audit: opts.Audit, log: opts.Log, snap: opts.Snapshot, hub: opts.Hub,
-		jobs: opts.Jobs, dokku: opts.Dokku, logStreams: newStreamLimiter(),
+		jobs: opts.Jobs, dokku: opts.Dokku, env: opts.Env, logStreams: newStreamLimiter(),
 		serverName: opts.ServerName, dokkuHost: opts.DokkuHost, heartbeat: opts.Heartbeat,
 	}
 	if a.heartbeat == 0 {
@@ -127,6 +130,10 @@ func (a *API) register(r *router) {
 	r.Route(http.MethodGet, "/projects/{slug}", authz.ProjectView, a.getProject)
 	r.Route(http.MethodPatch, "/projects/{slug}", authz.ProjectUpdate, a.updateProject)
 	r.Route(http.MethodDelete, "/projects/{slug}", authz.ProjectDelete, a.deleteProject)
+	r.Route(http.MethodGet, "/projects/{slug}/env", authz.ProjectView, a.getProjectEnv)
+	r.Route(http.MethodPut, "/projects/{slug}/env", authz.ProjectEnvWrite, a.putProjectEnv)
+	r.Route(http.MethodPost, "/projects/{slug}/env/apply", authz.ProjectEnvWrite, a.applyProjectEnv)
+	r.Route(http.MethodPost, "/projects/{slug}/env/reveal", authz.AppSecretsReveal, a.revealProjectEnv)
 	r.Route(http.MethodPut, "/projects/{slug}/apps/{app}", authz.ProjectMembersWrite, a.addProjectApp)
 	r.Route(http.MethodDelete, "/projects/{slug}/apps/{app}", authz.ProjectMembersWrite, a.removeProjectApp)
 	r.Route(http.MethodPut, "/projects/{slug}/services/{type}/{name}", authz.ProjectMembersWrite, a.addProjectService)
@@ -137,6 +144,9 @@ func (a *API) register(r *router) {
 	for _, action := range []string{dokku.ActionRestart, dokku.ActionStop, dokku.ActionStart, dokku.ActionRebuild} {
 		r.Route(http.MethodPost, "/apps/{name}/actions/"+action, authz.AppOperate, a.appAction(action))
 	}
+	r.Route(http.MethodGet, "/apps/{name}/config", authz.AppView, a.getAppConfig)
+	r.Route(http.MethodPatch, "/apps/{name}/config", authz.AppConfigWrite, a.updateAppConfig)
+	r.Route(http.MethodPost, "/apps/{name}/config/reveal", authz.AppSecretsReveal, a.revealAppConfig)
 	r.Route(http.MethodGet, "/apps/{name}/logs", authz.AppLogsRead, a.getAppLogs)
 	r.Route(http.MethodGet, "/apps/{name}/logs/stream", authz.AppLogsRead, a.streamAppLogs)
 

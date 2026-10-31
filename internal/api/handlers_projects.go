@@ -2,8 +2,10 @@ package api
 
 import (
 	"errors"
+	"maps"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -199,8 +201,7 @@ func (a *API) updateProject(w http.ResponseWriter, r *http.Request) error {
 // deleteProject releases the project's apps and services and deletes it. The caller
 // confirms with the slug (PRJ-4).
 //
-// Shared variables arrive in M4; deleting a project will then also remove its managed
-// variables from member apps (SHV-2).
+// Its managed variables are removed from the member apps as a job (PRJ-4).
 func (a *API) deleteProject(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	p, err := a.db.ProjectBySlug(ctx, chi.URLParam(r, "slug"))
@@ -212,15 +213,37 @@ func (a *API) deleteProject(w http.ResponseWriter, r *http.Request) error {
 		ae.Fields = map[string]string{"confirm": "Type " + p.Slug + " to confirm."}
 		return ae
 	}
+	// The provenance rows go with the project, so keep them to remove the managed
+	// variables from the member apps afterwards (PRJ-4, SHV-2).
+	provenance, err := a.db.ProjectProvenance(ctx, p.ID)
+	if err != nil {
+		return err
+	}
+	if len(provenance) > 0 && !a.snap.State().Server.Reachable {
+		return errDokkuUnreachable
+	}
 	if err := a.db.DeleteProject(ctx, p.ID); err != nil {
 		return err
 	}
-	a.audit.Record(ctx, authz.FromContext(ctx), audit.Entry{
+	moves := make([]envMove, 0, len(provenance))
+	for _, app := range slices.Sorted(maps.Keys(provenance)) {
+		moves = append(moves, envMove{app: app, from: &p, fromRows: provenance[app],
+			title: "Remove shared variables of " + p.Name})
+	}
+	job, err := a.submitEnvMoves(ctx, moves)
+	if err != nil {
+		return err
+	}
+	entry := audit.Entry{
 		Action: "projects:delete", TargetType: "project", TargetName: p.Slug, ProjectSlug: p.Slug,
 		Detail: map[string]any{"name": p.Name},
-	})
+	}
+	if job != nil {
+		entry.JobID = job.ID
+	}
+	a.audit.Record(ctx, authz.FromContext(ctx), entry)
 	a.projectChanged(p.Slug)
-	w.WriteHeader(http.StatusNoContent)
+	writeMaybeJob(w, job)
 	return nil
 }
 
@@ -296,19 +319,42 @@ func (a *API) changeMembership(w http.ResponseWriter, r *http.Request, kind stri
 	}
 
 	detail := map[string]any{}
+	var oldProject *store.Project
 	if from != "" && from != p.ID {
 		if old, err := a.db.ProjectByID(ctx, from); err == nil {
+			oldProject = &old
 			detail["moved_from"] = old.Slug
 			a.projectChanged(old.Slug)
 		}
 	}
-	if from != p.ID || !add {
-		a.audit.Record(ctx, authz.FromContext(ctx), audit.Entry{
-			Action: action, TargetType: kind, TargetName: target, ProjectSlug: p.Slug, Detail: detail,
-		})
-		a.projectChanged(p.Slug)
+	if from == p.ID && add {
+		w.WriteHeader(http.StatusNoContent) // already there
+		return nil
 	}
-	w.WriteHeader(http.StatusNoContent)
+	// Shared variables follow the app (SHV-2): an app leaving a project loses its managed
+	// variables, an app joining one receives them.
+	var job *store.Job
+	if kind == "app" {
+		mv := envMove{app: target, title: "Update shared variables of " + target, projectID: p.ID}
+		if add {
+			mv.from, mv.to = oldProject, &p
+		} else {
+			mv.from = &p
+		}
+		if job, err = a.submitEnvMoves(ctx, []envMove{mv}); err != nil {
+			return err
+		}
+		if job != nil {
+			detail["job"] = job.ID
+		}
+	}
+	entry := audit.Entry{Action: action, TargetType: kind, TargetName: target, ProjectSlug: p.Slug, Detail: detail}
+	if job != nil {
+		entry.JobID = job.ID
+	}
+	a.audit.Record(ctx, authz.FromContext(ctx), entry)
+	a.projectChanged(p.Slug)
+	writeMaybeJob(w, job)
 	return nil
 }
 

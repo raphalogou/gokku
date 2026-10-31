@@ -1,10 +1,12 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import {
   getApp,
+  getAppConfig,
   getAppLogs,
   getJob,
   getMe,
   getProject,
+  getProjectEnv,
   getServer,
   getSetupStatus,
   listApps,
@@ -37,6 +39,8 @@ export const queryKeys = {
   jobList: (params: ListJobsParams) => ["jobs", "list", params] as const,
   job: (id: string) => ["jobs", id] as const,
   appLogs: (name: string, params: GetAppLogsParams) => ["logs", name, params] as const,
+  appConfig: (name: string) => ["apps", name, "config"] as const,
+  projectEnv: (slug: string) => ["projects", slug, "env"] as const,
   audit: () => ["audit"] as const,
   auditList: (params: ListAuditParams) => ["audit", params] as const,
 };
@@ -100,4 +104,16 @@ export const auditQuery = (params: Omit<ListAuditParams, "cursor">) =>
     queryFn: ({ signal, pageParam }) => listAudit({ ...params, cursor: pageParam }, { signal }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.next_cursor ?? undefined,
+  });
+
+export const appConfigQuery = (name: string) =>
+  queryOptions({
+    queryKey: queryKeys.appConfig(name),
+    queryFn: ({ signal }) => getAppConfig(name, { signal }),
+  });
+
+export const projectEnvQuery = (slug: string) =>
+  queryOptions({
+    queryKey: queryKeys.projectEnv(slug),
+    queryFn: ({ signal }) => getProjectEnv(slug, { signal }),
   });
