@@ -831,6 +831,41 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
         "503": { $ref: "#/components/responses/Error" }
 
+  /apps/{name}/scale:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getAppScale
+      tags: [apps]
+      summary: Process types with their instances (SCL-1)
+      responses:
+        "200":
+          description: The formation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppScale" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+    put:
+      operationId: putAppScale
+      tags: [apps]
+      summary: "Change instances, then apply and restart as a job (SCL-1)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScaleRequest" }
+      responses:
+        "202":
+          description: The scale job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
   /apps/{name}/logs:
     parameters:
       - { name: name, in: path, required: true, schema: { type: string } }
@@ -1691,3 +1726,29 @@ components:
         action: { type: string, enum: [enable, renew, disable, set_email, set_auto_renew] }
         email: { type: string, maxLength: 254 }
         auto_renew: { type: boolean }
+
+    ProcessScale:
+      type: object
+      required: [type, quantity, running]
+      properties:
+        type: { type: string }
+        quantity: { type: integer, description: Desired instances }
+        running: { type: integer, description: Instances running now }
+
+    AppScale:
+      type: object
+      required: [can_scale, processes]
+      properties:
+        can_scale: { type: boolean, description: "False when the app's app.json sets the formation" }
+        processes:
+          type: array
+          items: { $ref: "#/components/schemas/ProcessScale" }
+
+    ScaleRequest:
+      type: object
+      required: [processes]
+      properties:
+        processes:
+          type: object
+          additionalProperties: { type: integer, minimum: 0, maximum: 100 }
+          description: Instances per process type; only the types to change

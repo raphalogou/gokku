@@ -27,7 +27,7 @@ export default [
       route("config", "routes/app-config.tsx"),
       route("domains", "routes/app-domains.tsx"),
       route("logs", "routes/app-logs.tsx"),
-      route("scaling", "routes/later-tab.tsx", { id: "app-scaling" }),
+      route("scaling", "routes/app-scaling.tsx"),
       route("deploy", "routes/later-tab.tsx", { id: "app-deploy" }),
       route("settings", "routes/later-tab.tsx", { id: "app-settings" }),
     ]),

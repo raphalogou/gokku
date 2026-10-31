@@ -16,6 +16,7 @@ import type {
   AppConfig,
   AppDetail,
   AppDomains,
+  AppScale,
   AppSummary,
   ApplyEnvRequest,
   AuditPage,
@@ -49,6 +50,7 @@ import type {
   RevealedValues,
   SSLRequest,
   SSLStatus,
+  ScaleRequest,
   ServerInfo,
   ServiceSummary,
   Session,
@@ -1528,6 +1530,69 @@ return apiFetch<SSLStatus | JobRef>(getChangeAppSSLUrl(name),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(sSLRequest)
+  }
+);}
+
+
+
+export const getGetAppScaleUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/scale`
+}
+
+/**
+ * @summary Process types with their instances (SCL-1)
+ */
+export const getAppScale = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<AppScale> => {
+
+  return apiFetch<AppScale>(getGetAppScaleUrl(name),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getPutAppScaleUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/scale`
+}
+
+/**
+ * @summary Change instances, then apply and restart as a job (SCL-1)
+ */
+export const putAppScale = async (name: string,
+    scaleRequest: ScaleRequest, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<JobRef>(getPutAppScaleUrl(name),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(scaleRequest)
   }
 );}
 

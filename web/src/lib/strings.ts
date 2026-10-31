@@ -465,6 +465,25 @@ export const strings = {
       active ? `Certificate active${when ? `, expires ${when}` : ""}` : "No certificate",
   },
 
+  scaling: {
+    intro:
+      "Process types come from the Procfile in the last deploy. Changing the number of instances restarts the app.",
+    title: "Process types",
+    type: "Process type",
+    instances: "Instances",
+    status: "Status",
+    pending: "Pending",
+    noChange: "No change",
+    changedFrom: (n: number) => `Changed from ${n}`,
+    instancesOf: (t: string) => `${t} instances`,
+    apply: "Apply and restart",
+    applying: "Applying…",
+    started: "Scaling started.",
+    locked: "This app's app.json sets the formation, so scaling is managed in the repository.",
+    empty: "No process types yet. Deploy the app first.",
+    readOnly: "Your role can read the formation but not change it.",
+  },
+
   console: {
     following: "Following output",
     paused: (n: number) => (n > 0 ? `Paused, ${n} new ${n === 1 ? "line" : "lines"}` : "Paused"),

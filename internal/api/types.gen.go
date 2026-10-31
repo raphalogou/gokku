@@ -665,6 +665,13 @@ type AppEnvStatus struct {
 	Status EnvStatus `json:"status"`
 }
 
+// AppScale defines model for AppScale.
+type AppScale struct {
+	// CanScale False when the app's app.json sets the formation
+	CanScale  bool           `json:"can_scale"`
+	Processes []ProcessScale `json:"processes"`
+}
+
 // AppState defines model for AppState.
 type AppState struct {
 	Name string `json:"name"`
@@ -957,6 +964,16 @@ type Process struct {
 	Type    string `json:"type"`
 }
 
+// ProcessScale defines model for ProcessScale.
+type ProcessScale struct {
+	// Quantity Desired instances
+	Quantity int `json:"quantity"`
+
+	// Running Instances running now
+	Running int    `json:"running"`
+	Type    string `json:"type"`
+}
+
 // ProjectDetail defines model for ProjectDetail.
 type ProjectDetail struct {
 	// Activity The latest audit entries for the project
@@ -1062,6 +1079,12 @@ type SSLStatus struct {
 
 	// Uncovered Domains added through Gokku after the certificate was issued (SSL-2)
 	Uncovered []string `json:"uncovered"`
+}
+
+// ScaleRequest defines model for ScaleRequest.
+type ScaleRequest struct {
+	// Processes Instances per process type; only the types to change
+	Processes map[string]int `json:"processes"`
 }
 
 // ServerInfo defines model for ServerInfo.
@@ -1335,6 +1358,9 @@ type RevealAppConfigJSONRequestBody = RevealRequest
 
 // AddAppDomainJSONRequestBody defines body for AddAppDomain for application/json ContentType.
 type AddAppDomainJSONRequestBody = DomainRequest
+
+// PutAppScaleJSONRequestBody defines body for PutAppScale for application/json ContentType.
+type PutAppScaleJSONRequestBody = ScaleRequest
 
 // ChangeAppSSLJSONRequestBody defines body for ChangeAppSSL for application/json ContentType.
 type ChangeAppSSLJSONRequestBody = SSLRequest

@@ -1053,6 +1053,44 @@ export const ChangeAppSSLResponse = zod.object({
 
 
 /**
+ * @summary Process types with their instances (SCL-1)
+ */
+export const GetAppScaleParams = zod.object({
+  "name": zod.string()
+})
+
+export const GetAppScaleResponse = zod.object({
+  "can_scale": zod.boolean().describe('False when the app\'s app.json sets the formation'),
+  "processes": zod.array(zod.object({
+  "type": zod.string(),
+  "quantity": zod.int().describe('Desired instances'),
+  "running": zod.int().describe('Instances running now')
+}))
+})
+
+
+/**
+ * @summary Change instances, then apply and restart as a job (SCL-1)
+ */
+export const PutAppScaleParams = zod.object({
+  "name": zod.string()
+})
+
+export const putAppScaleBodyProcessesMinOne = 0;
+export const putAppScaleBodyProcessesMaxOne = 100;
+
+
+
+export const PutAppScaleBody = zod.object({
+  "processes": zod.record(zod.string(), zod.int().min(putAppScaleBodyProcessesMinOne).max(putAppScaleBodyProcessesMaxOne)).describe('Instances per process type; only the types to change')
+})
+
+export const PutAppScaleResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
  * @summary The last lines of the app's output (LOG-1)
  */
 export const GetAppLogsParams = zod.object({

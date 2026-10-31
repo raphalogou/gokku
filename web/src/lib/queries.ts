@@ -4,6 +4,7 @@ import {
   getAppConfig,
   getAppDomains,
   getAppLogs,
+  getAppScale,
   getAppSSL,
   getJob,
   getMe,
@@ -45,6 +46,7 @@ export const queryKeys = {
   projectEnv: (slug: string) => ["projects", slug, "env"] as const,
   appDomains: (name: string) => ["apps", name, "domains"] as const,
   appSSL: (name: string) => ["apps", name, "ssl"] as const,
+  appScale: (name: string) => ["apps", name, "scale"] as const,
   audit: () => ["audit"] as const,
   auditList: (params: ListAuditParams) => ["audit", params] as const,
 };
@@ -130,3 +132,9 @@ export const appDomainsQuery = (name: string) =>
 
 export const appSSLQuery = (name: string) =>
   queryOptions({ queryKey: queryKeys.appSSL(name), queryFn: ({ signal }) => getAppSSL(name, { signal }) });
+
+export const appScaleQuery = (name: string) =>
+  queryOptions({
+    queryKey: queryKeys.appScale(name),
+    queryFn: ({ signal }) => getAppScale(name, { signal }),
+  });

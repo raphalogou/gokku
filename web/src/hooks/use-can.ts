@@ -17,6 +17,7 @@ const minRole = {
   "app.config.write": "operator",
   "app.domains.write": "operator",
   "app.ssl.write": "operator",
+  "app.scale": "operator",
   "app.secrets.reveal": "operator",
   "project.env.write": "admin",
 } as const satisfies Record<string, Role>;

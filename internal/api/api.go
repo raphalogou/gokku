@@ -152,6 +152,8 @@ func (a *API) register(r *router) {
 	r.Route(http.MethodDelete, "/apps/{name}/domains", authz.AppDomainsWrite, a.removeAppDomain)
 	r.Route(http.MethodGet, "/apps/{name}/ssl", authz.AppView, a.getAppSSL)
 	r.Route(http.MethodPost, "/apps/{name}/ssl", authz.AppSSLWrite, a.changeAppSSL)
+	r.Route(http.MethodGet, "/apps/{name}/scale", authz.AppView, a.getAppScale)
+	r.Route(http.MethodPut, "/apps/{name}/scale", authz.AppScale, a.putAppScale)
 	r.Route(http.MethodGet, "/apps/{name}/logs", authz.AppLogsRead, a.getAppLogs)
 	r.Route(http.MethodGet, "/apps/{name}/logs/stream", authz.AppLogsRead, a.streamAppLogs)
 
