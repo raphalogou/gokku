@@ -21,6 +21,10 @@ type FakeRunner struct {
 	// Dokku would, with the file's content as stderr. Tests and Playwright create it to
 	// show the "Cannot reach Dokku" state (SRV-2).
 	FailFile string
+	// Delay is the pause between streamed lines, so progress is visible in the UI.
+	Delay time.Duration
+	// FailRebuild lists apps whose ps:rebuild fails, as a broken build would.
+	FailRebuild map[string]bool
 
 	mu       sync.Mutex
 	version  string
@@ -55,9 +59,10 @@ type fakeService struct {
 // mockup. Times are relative to now.
 func NewFakeRunner(now time.Time) *FakeRunner {
 	f := &FakeRunner{
-		version:  "0.38.34",
-		apps:     map[string]*fakeApp{},
-		services: map[string]*fakeService{},
+		FailRebuild: map[string]bool{"status-page": true},
+		version:     "0.38.34",
+		apps:        map[string]*fakeApp{},
+		services:    map[string]*fakeService{},
 	}
 	for _, name := range []string{
 		"00_dokku-standard", "20_events", "app-json", "apps", "builder", "builder-dockerfile",
@@ -128,45 +133,98 @@ func (f *FakeRunner) Run(ctx context.Context, args ...string) (Result, error) {
 	if err := ctx.Err(); err != nil {
 		return Result{}, err
 	}
-	if f.FailFile != "" {
-		if msg, err := os.ReadFile(f.FailFile); err == nil {
-			return Result{Stderr: cmp.Or(strings.TrimSpace(string(msg)), "sudo: a password is required") + "\n", ExitCode: 1}, nil
+	sc := f.command(args)
+	var stdout, stderr strings.Builder
+	for _, l := range sc.lines {
+		b := &stdout
+		if l.Stream == "stderr" {
+			b = &stderr
 		}
+		b.WriteString(l.Text + "\n")
 	}
-
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.calls = append(f.calls, strings.Join(args, " "))
-	if len(args) == 0 {
-		return fail("Usage: dokku [--quiet|--trace|--force] COMMAND <app> [command-specific-options]"), nil
-	}
-	out, ok := f.read(args)
-	if !ok {
-		return fail(fmt.Sprintf("fake runner: %s is not implemented", strings.Join(args, " "))), nil
-	}
-	return Result{Stdout: out}, nil
+	return Result{Stdout: stdout.String(), Stderr: stderr.String(), ExitCode: sc.exit}, nil
 }
 
-// Stream implements Runner by running the command and emitting its output lines.
+// Stream implements Runner. Lines are emitted Delay apart; `logs --tail` keeps emitting
+// until ctx ends.
 func (f *FakeRunner) Stream(ctx context.Context, args []string, _ io.Reader, onLine func(Line)) error {
-	res, err := f.Run(ctx, args...)
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return err
 	}
-	for line := range strings.Lines(res.Stdout) {
-		onLine(Line{Stream: "stdout", Text: strings.TrimRight(line, "\n")})
+	sc := f.command(args)
+	for _, l := range sc.lines {
+		if err := f.wait(ctx); err != nil {
+			return err
+		}
+		onLine(l)
 	}
-	for line := range strings.Lines(res.Stderr) {
-		onLine(Line{Stream: "stderr", Text: strings.TrimRight(line, "\n")})
+	if sc.follow != nil {
+		return sc.follow(ctx, onLine)
 	}
-	if res.ExitCode != 0 {
-		return &ExitError{Command: newCmd(args...).String(), ExitCode: res.ExitCode}
+	if sc.exit != 0 {
+		return &ExitError{Command: newCmd(args...).String(), ExitCode: sc.exit}
 	}
 	return nil
 }
 
-func fail(msg string) Result {
-	return Result{Stderr: " !     " + msg + "\n", ExitCode: 1}
+func (f *FakeRunner) wait(ctx context.Context) error {
+	if f.Delay <= 0 {
+		return ctx.Err()
+	}
+	t := time.NewTimer(f.Delay)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
+}
+
+// script is what a fake command prints, its exit code, and for `logs --tail` what it
+// keeps printing.
+type script struct {
+	lines  []Line
+	exit   int
+	follow func(ctx context.Context, onLine func(Line)) error
+}
+
+func out(lines ...string) []Line {
+	ls := make([]Line, 0, len(lines))
+	for _, l := range lines {
+		ls = append(ls, Line{Stream: "stdout", Text: l})
+	}
+	return ls
+}
+
+func failScript(msg string) script {
+	return script{lines: []Line{{Stream: "stderr", Text: " !     " + msg}}, exit: 1}
+}
+
+// command answers one command, changing the state for lifecycle commands.
+func (f *FakeRunner) command(args []string) script {
+	if f.FailFile != "" {
+		if msg, err := os.ReadFile(f.FailFile); err == nil {
+			return script{lines: []Line{{Stream: "stderr",
+				Text: cmp.Or(strings.TrimSpace(string(msg)), "sudo: a password is required")}}, exit: 1}
+		}
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.calls = append(f.calls, strings.Join(args, " "))
+	if len(args) == 0 {
+		return failScript("Usage: dokku [--quiet|--trace|--force] COMMAND <app> [command-specific-options]")
+	}
+	if text, ok := f.read(args); ok {
+		return script{lines: out(strings.Split(strings.TrimSuffix(text, "\n"), "\n")...)}
+	}
+	if action, ok := strings.CutPrefix(args[0], "ps:"); ok && len(args) == 2 && IsLifecycleAction(action) {
+		return f.lifecycle(action, args[1])
+	}
+	if args[0] == "logs" && len(args) >= 2 {
+		return f.logs(args[1:])
+	}
+	return failScript(fmt.Sprintf("fake runner: %s is not implemented", strings.Join(args, " ")))
 }
 
 // read answers the read-only commands.

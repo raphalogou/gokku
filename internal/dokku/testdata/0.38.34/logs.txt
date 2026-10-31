@@ -1,0 +1,7 @@
+[36m2026-10-30T09:14:02.120394817Z app[web.1]:[0m GET /posts?page=2 200 14ms
+[36m2026-10-30T09:14:06.004118221Z app[web.1]:[0m POST /comments 201 31ms
+[36m2026-10-30T09:14:14.551028114Z app[web.1]:[0m POST /comments 500 18ms: validation failed
+[33m2026-10-30T09:14:03.871200041Z app[web.2]:[0m GET /health 200 2ms
+[33m2026-10-30T09:14:07.310245990Z app[web.2]:[0m slow query on posts table (412ms)
+[32m2026-10-30T09:14:05.400001772Z app[worker.1]:[0m job digest:send started
+[32m2026-10-30T09:14:09.020910331Z app[worker.1]:[0m job digest:send finished

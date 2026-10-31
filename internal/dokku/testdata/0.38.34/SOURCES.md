@@ -21,3 +21,5 @@ The docs show no sample for these, so they are rendered with the formatting code
 | version.txt | `dokku version` | `dokku` main script, `version` command |
 
 Replace a rendered file with output recorded on a real server when one is available; the tests must keep passing.
+
+| logs.txt | `dokku logs blog-api --num 3` | `plugins/scheduler-docker-local/scheduler-logs`: `docker logs -t --tail N` per container, in turn, each line rewritten by `sed` to `<color><timestamp> app[<dyno>]:<reset> <text>` |

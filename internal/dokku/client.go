@@ -2,8 +2,11 @@ package dokku
 
 import (
 	"context"
+	"errors"
+	"io"
 	"log/slog"
 	"strings"
+	"time"
 )
 
 // Client runs typed dokku commands through a Runner. Every method validates its
@@ -40,4 +43,20 @@ func (cl *Client) run(ctx context.Context, c cmd) (string, error) {
 		return "", &ExitError{Command: c.String(), ExitCode: res.ExitCode, Stderr: c.scrub(msg)}
 	}
 	return res.Stdout, nil
+}
+
+// stream runs c and passes each output line, with secret values scrubbed, to onLine. A
+// non-zero exit becomes *ExitError.
+func (cl *Client) stream(ctx context.Context, c cmd, stdin io.Reader, onLine func(Line)) error {
+	start := time.Now()
+	err := cl.runner.Stream(ctx, c.args, stdin, func(l Line) {
+		l.Text = c.scrub(l.Text)
+		onLine(l)
+	})
+	cl.log.LogAttrs(ctx, slog.LevelDebug, "dokku stream",
+		slog.String("command", c.String()), slog.Duration("duration", time.Since(start)), slog.Any("error", err))
+	if exitErr, ok := errors.AsType[*ExitError](err); ok {
+		return &ExitError{Command: c.String(), ExitCode: exitErr.ExitCode, Stderr: exitErr.Stderr}
+	}
+	return err
 }

@@ -30,6 +30,14 @@ dokku version
 dokku plugin:list
 ```
 
+Actions and logs run one command each, on request:
+
+```
+dokku ps:restart <app>            # also ps:stop, ps:start, ps:rebuild, as jobs
+dokku logs <app> --num N [--ps <type>]
+dokku logs <app> --num 0 [--ps <type>] --tail      # one per open log stream
+```
+
 Reports are read in their text format; see docs/DECISIONS.md, "Bulk reports use the text format".
 
 ## Golden fixtures
