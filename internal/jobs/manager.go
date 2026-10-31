@@ -4,6 +4,7 @@
 package jobs
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -75,6 +76,8 @@ type Manager struct {
 	pending  []*entry
 	busy     map[string]bool   // apps with a running job
 	active   map[string]*entry // queued or running, by job id
+	groups   map[string]*group // parent job id -> group
+	parentOf map[string]string // child job id -> parent job id
 	stopping bool
 	wg       sync.WaitGroup
 }
@@ -96,7 +99,8 @@ func New(opts Options) *Manager {
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
-	m := &Manager{opts: opts, busy: map[string]bool{}, active: map[string]*entry{}}
+	m := &Manager{opts: opts, busy: map[string]bool{}, active: map[string]*entry{},
+		groups: map[string]*group{}, parentOf: map[string]string{}}
 	m.cond = sync.NewCond(&m.mu)
 	return m
 }
@@ -130,10 +134,27 @@ func (m *Manager) Wait() { m.wg.Wait() }
 
 // Submit persists a queued job and schedules it. It returns the stored job.
 func (m *Manager) Submit(ctx context.Context, spec Spec) (store.Job, error) {
-	if len(spec.Steps) == 0 || spec.Run == nil {
-		return store.Job{}, errors.New("jobs: a spec needs steps and a Run function")
+	if spec.Run == nil {
+		return store.Job{}, errors.New("jobs: a spec needs a Run function")
+	}
+	e, err := m.create(ctx, spec, "", spec.Steps)
+	if err != nil {
+		return store.Job{}, err
+	}
+	job := e.job // a worker updates e.job once it runs
+	m.enqueue(e)
+	return job, nil
+}
+
+// create persists a queued job and returns its entry, not yet scheduled.
+func (m *Manager) create(ctx context.Context, spec Spec, parentID string, steps []string) (*entry, error) {
+	if len(steps) == 0 {
+		return nil, errors.New("jobs: a job needs at least one step")
 	}
 	j := store.Job{ID: store.NewID(), Kind: spec.Kind, Title: spec.Title, Status: store.JobQueued, Source: "system"}
+	if parentID != "" {
+		j.ParentID = &parentID
+	}
 	if spec.App != "" {
 		j.AppName = &spec.App
 	}
@@ -147,32 +168,172 @@ func (m *Manager) Submit(ctx context.Context, spec Spec) (store.Job, error) {
 			j.Source = "api"
 		}
 	}
-	if err := m.opts.DB.CreateJob(ctx, j, spec.Steps); err != nil {
-		return store.Job{}, err
-	}
-	steps, err := m.opts.DB.JobSteps(ctx, j.ID)
-	if err != nil {
-		return store.Job{}, err
+	if err := m.opts.DB.CreateJob(ctx, j, steps); err != nil {
+		return nil, err
 	}
 	stored, err := m.opts.DB.JobByID(ctx, j.ID)
 	if err != nil {
-		return store.Job{}, err
+		return nil, err
 	}
+	rows, err := m.opts.DB.JobSteps(ctx, j.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &entry{job: stored, spec: spec, out: newOutput(m, stored.ID, rows, spec.Secrets)}, nil
+}
 
-	e := &entry{job: stored, spec: spec, out: newOutput(m, stored.ID, steps, spec.Secrets)}
+func (m *Manager) enqueue(e *entry) {
+	job := e.job
 	m.mu.Lock()
 	m.pending = append(m.pending, e)
-	m.active[j.ID] = e
+	m.active[job.ID] = e
 	m.mu.Unlock()
+	m.publish(job)
 	m.cond.Signal()
-	m.publish(stored)
-	return stored, nil
+}
+
+// group is a parent job whose children run as ordinary jobs (JOB-5). The parent takes no
+// worker: it starts with its first child and ends with its last.
+type group struct {
+	parent   *entry
+	steps    map[string]int // child job id -> the parent's step for it
+	left     int
+	failed   []string // titles of the children that did not succeed
+	canceled bool
+}
+
+// SubmitGroup persists a parent job with one step per child, then queues the children.
+// The children run with the worker pool's concurrency and the parent continues after a
+// child fails; it succeeds only if every child succeeds (JOB-5). The parent's Run is not
+// used; its Finished is called when the last child ends.
+func (m *Manager) SubmitGroup(ctx context.Context, parent Spec, children []Spec) (store.Job, error) {
+	if len(children) == 0 {
+		return store.Job{}, errors.New("jobs: a group needs children")
+	}
+	steps := make([]string, len(children))
+	for i, c := range children {
+		steps[i] = cmp.Or(c.App, c.Title)
+	}
+	pe, err := m.create(ctx, parent, "", steps)
+	if err != nil {
+		return store.Job{}, err
+	}
+	g := &group{parent: pe, steps: map[string]int{}, left: len(children)}
+	var kids []*entry
+	for i, c := range children {
+		ce, err := m.create(ctx, c, pe.job.ID, c.Steps)
+		if err != nil {
+			return store.Job{}, err
+		}
+		g.steps[ce.job.ID] = i
+		kids = append(kids, ce)
+	}
+	m.mu.Lock()
+	m.groups[pe.job.ID] = g
+	for _, ce := range kids {
+		m.parentOf[ce.job.ID] = pe.job.ID
+	}
+	m.active[pe.job.ID] = pe
+	job := pe.job // the children update pe.job once they run
+	m.mu.Unlock()
+	m.publish(job)
+	for _, ce := range kids {
+		m.enqueue(ce)
+	}
+	return job, nil
+}
+
+// childStarted starts the parent with its first child and marks the child's step.
+func (m *Manager) childStarted(e *entry) {
+	m.mu.Lock()
+	g := m.groups[m.parentOf[e.job.ID]]
+	m.mu.Unlock()
+	if g == nil {
+		return
+	}
+	m.mu.Lock()
+	first := g.parent.job.Status == store.JobQueued
+	now := store.At(m.opts.Now())
+	if first {
+		g.parent.job.Status, g.parent.job.StartedAt = store.JobRunning, &now
+	}
+	job := g.parent.job
+	m.mu.Unlock()
+	if first {
+		if err := m.opts.DB.StartJob(context.Background(), job.ID, now); err != nil {
+			m.opts.Log.Error("start group job", slog.String("job_id", job.ID), slog.Any("error", err))
+		}
+		m.publish(job)
+	}
+	g.parent.out.markStep(g.steps[e.job.ID], store.JobRunning)
+}
+
+// childFinished records a child's result on its parent and ends the parent after the last.
+func (m *Manager) childFinished(child store.Job) {
+	m.mu.Lock()
+	parentID := m.parentOf[child.ID]
+	g := m.groups[parentID]
+	delete(m.parentOf, child.ID)
+	if g == nil {
+		m.mu.Unlock()
+		return
+	}
+	g.left--
+	if child.Status != store.JobSucceeded {
+		g.failed = append(g.failed, child.Title)
+	}
+	done := g.left == 0
+	if done {
+		delete(m.groups, parentID)
+		delete(m.active, parentID)
+	}
+	m.mu.Unlock()
+
+	status := child.Status
+	if status == store.JobQueued || status == store.JobRunning {
+		status = store.JobFailed
+	}
+	g.parent.out.markStep(g.steps[child.ID], status)
+	g.parent.out.system(child.Title + ": " + child.Status)
+	if !done {
+		return
+	}
+	switch {
+	case len(g.failed) == 0:
+		m.finish(g.parent, store.JobSucceeded, nil)
+	case g.canceled:
+		m.finish(g.parent, store.JobCanceled, nil)
+	default:
+		msg := fmt.Sprintf("%d of %d failed", len(g.failed), len(g.steps))
+		m.finish(g.parent, store.JobFailed, &msg)
+	}
+}
+
+// cancelGroup cancels every child of a group that has not finished.
+func (m *Manager) cancelGroup(ctx context.Context, g *group) {
+	m.mu.Lock()
+	g.canceled = true
+	var ids []string
+	for id := range g.steps {
+		if _, ok := m.active[id]; ok {
+			ids = append(ids, id)
+		}
+	}
+	m.mu.Unlock()
+	for _, id := range ids {
+		_ = m.Cancel(ctx, id)
+	}
 }
 
 // Cancel stops a queued or running job (JOB-4). A running command gets SIGTERM, then
 // SIGKILL after 10 seconds, from the runner.
 func (m *Manager) Cancel(ctx context.Context, id string) error {
 	m.mu.Lock()
+	if g, ok := m.groups[id]; ok {
+		m.mu.Unlock()
+		m.cancelGroup(ctx, g)
+		return nil
+	}
 	e, ok := m.active[id]
 	if !ok {
 		m.mu.Unlock()
@@ -248,6 +409,7 @@ func (m *Manager) execute(parent context.Context, e *entry) {
 	e.job.Status, e.job.StartedAt = store.JobRunning, &now
 	m.publish(e.job)
 	m.changed(e.spec.App)
+	m.childStarted(e)
 	e.out.startFlusher(bg)
 
 	task := &Task{out: e.out}
@@ -301,6 +463,7 @@ func (m *Manager) finish(e *entry, status string, msg *string) {
 	if e.spec.Finished != nil {
 		e.spec.Finished(ctx, job)
 	}
+	m.childFinished(job)
 	m.opts.Log.Info("job finished", slog.String("job_id", job.ID), slog.String("kind", job.Kind), slog.String("status", status))
 }
 
@@ -375,6 +538,12 @@ func (t *Task) Step(i int) { t.out.step(i) }
 
 // Write adds one output line. Lines longer than 16 KiB are cut (JOB-3).
 func (t *Task) Write(stream, text string) { t.out.write(stream, text) }
+
+// JobID is the id of the running job.
+func (t *Task) JobID() string { return t.out.jobID }
+
+// Collapse replaces the steps with one named name, when the output gave no sign of them.
+func (t *Task) Collapse(name string) { t.out.collapse(name) }
 
 // Line adds one line of command output.
 func (t *Task) Line(l dokku.Line) { t.out.write(l.Stream, l.Text) }

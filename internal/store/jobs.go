@@ -280,3 +280,27 @@ func (db *DB) AppJobStates(ctx context.Context) ([]AppJobState, error) {
 		FROM status_jobs s GROUP BY app_name`, JobKindRestart, JobKindRebuild, JobKindDeploy)
 	return out, err
 }
+
+// CollapseSteps keeps only a job's first step, renamed (DEP-2: "If parsing fails, show one
+// step called Deploy").
+func (db *DB) CollapseSteps(ctx context.Context, jobID, name string) error {
+	tx, err := db.W.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `UPDATE job_steps SET name = ? WHERE job_id = ? AND position = 0`, name, jobID); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM job_steps WHERE job_id = ? AND position > 0`, jobID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// ChildJobs returns the children of a group parent, in the order they were created.
+func (db *DB) ChildJobs(ctx context.Context, parentID string) ([]Job, error) {
+	out := []Job{}
+	err := db.R.SelectContext(ctx, &out, `SELECT `+jobColumns+jobFrom+` WHERE j.parent_id = ? ORDER BY j.id`, parentID)
+	return out, err
+}

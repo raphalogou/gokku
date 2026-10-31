@@ -178,6 +178,33 @@ func (o *output) setStep(ctx context.Context, i int, status string, at store.Tim
 	o.broadcast(Event{Type: "step", Step: *s})
 }
 
+// markStep sets any step's status, for a group parent whose steps follow its children.
+func (o *output) markStep(i int, status string) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if i < 0 || i >= len(o.steps) || o.done {
+		return
+	}
+	o.setStep(context.Background(), i, status, store.At(o.m.opts.Now()))
+}
+
+// collapse replaces the steps with one named name, for output whose steps could not be
+// told apart (DEP-2). It only applies while nothing has moved past the first step.
+func (o *output) collapse(name string) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if o.done || len(o.steps) < 2 || o.current > 0 {
+		return
+	}
+	if err := o.m.opts.DB.CollapseSteps(context.Background(), o.jobID, name); err != nil {
+		o.m.opts.Log.Error("collapse job steps", slog.String("job_id", o.jobID), slog.Any("error", err))
+		return
+	}
+	o.steps = o.steps[:1]
+	o.steps[0].Name = name
+	o.broadcast(Event{Type: "steps", Step: o.steps[0]})
+}
+
 // end sends the final status and closes every subscription.
 func (o *output) end(job store.Job) {
 	o.mu.Lock()
