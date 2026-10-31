@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { data, useNavigate, useSearchParams } from "react-router";
+import { data, useNavigate, useParams, useSearchParams } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { Button } from "~/components/ui/button";
 import { Dialog, DialogActions } from "~/components/ui/dialog";
@@ -25,20 +25,22 @@ export async function clientLoader() {
 
 const nameRe = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
-/** The Create service dialog, a modal route over the services list (SVC-2). */
+/** The Create service dialog, a modal route over the services list or a project's services,
+ * which picks that project (SVC-2). */
 export default function NewService() {
   const navigate = useNavigate();
   const [search] = useSearchParams();
+  const { slug } = useParams();
   const qc = useQueryClient();
   const projects = useQuery(projectsQuery());
   const { data: server } = useQuery(serverQuery());
   const types = server?.datastores ?? [];
   const [type, setType] = useState("");
   const [name, setName] = useState("");
-  const [project, setProject] = useState(search.get("project") ?? "");
+  const [project, setProject] = useState(slug ?? search.get("project") ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const t = strings.newService;
-  const close = () => void navigate("/services");
+  const close = () => void navigate(slug ? `/projects/${slug}/services` : "/services");
 
   const projectOptions = (projects.data ?? []).map((p) => ({ value: p.slug, label: p.name }));
   const chosenProject = project || projectOptions[0]?.value || "";
@@ -49,6 +51,7 @@ export default function NewService() {
     onSuccess: async ({ job_id }) => {
       notify(t.started(name));
       void qc.invalidateQueries({ queryKey: queryKeys.services() });
+      if (slug) void qc.invalidateQueries({ queryKey: queryKeys.project(slug) });
       await navigate(`/jobs/${job_id}`);
     },
     onError: (err) =>

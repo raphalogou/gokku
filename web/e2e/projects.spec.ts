@@ -52,7 +52,7 @@ test("create a project, then move an app and a service into it (PRJ-1, PRJ-2)", 
   await expect(page.getByText("No apps yet")).toBeVisible();
   await expect(page.getByText("No services yet")).toBeVisible();
 
-  await page.getByRole("button", { name: "Add app" }).first().click();
+  await page.getByRole("button", { name: "Add existing app" }).first().click();
   await pick(page, "App", /docs-site.*in Internal tools/);
   await page.getByRole("dialog").getByRole("button", { name: "Add to project" }).click();
   await expect(page.getByText("docs-site was added to the project.")).toBeVisible();
@@ -60,7 +60,7 @@ test("create a project, then move an app and a service into it (PRJ-1, PRJ-2)", 
     page.getByRole("table", { name: "Apps" }).getByRole("link", { name: "docs-site" }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Add service" }).first().click();
+  await page.getByRole("button", { name: "Add existing service" }).first().click();
   await pick(page, "Service", /shop-db/);
   await page.getByRole("dialog").getByRole("button", { name: "Add to project" }).click();
   await expect(page.getByRole("table", { name: "Services" }).getByText("shop-db")).toBeVisible();
@@ -150,7 +150,8 @@ test("an operator sees projects without admin controls", async ({ page }) => {
   await expect(page.getByRole("link", { name: "New project" })).toHaveCount(0);
   await page.getByRole("link", { name: "Blog platform" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Blog platform" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Add app" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add existing app" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Create app" })).toHaveCount(0);
   await page.goto("/plugins");
   await expect(page.getByRole("button", { name: "Rescan" })).toHaveCount(0);
 });

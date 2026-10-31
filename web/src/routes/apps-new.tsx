@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { data, Link, useNavigate, useSearchParams } from "react-router";
+import { data, Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { CodeBlock } from "~/components/app/code-block";
 import { Button, buttonVariants } from "~/components/ui/button";
@@ -27,20 +27,23 @@ export async function clientLoader() {
 const nameRe = /^[a-z0-9][a-z0-9.-]*$/;
 const sources: AppSource[] = ["git", "image", "repository"];
 
-/** The New app dialog, a modal route over the apps list (APP-3). */
+/** The New app dialog, a modal route over the apps list or a project's apps, which picks
+ * that project (APP-3). */
 export default function NewApp() {
   const navigate = useNavigate();
   const [search] = useSearchParams();
+  const { slug } = useParams();
   const qc = useQueryClient();
   const projects = useQuery(projectsQuery());
   const { data: server } = useQuery(serverQuery());
   const [name, setName] = useState("");
-  const [project, setProject] = useState(search.get("project") ?? "");
+  const [project, setProject] = useState(slug ?? search.get("project") ?? "");
   const [source, setSource] = useState<AppSource>("git");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [created, setCreated] = useState<AppCreated | null>(null);
   const t = strings.newApp;
-  const close = () => void navigate(created ? `/apps/${created.app.name}` : "/apps");
+  const back = slug ? `/projects/${slug}/apps` : "/apps";
+  const close = () => void navigate(created ? `/apps/${created.app.name}` : back);
 
   const options = (projects.data ?? []).map((p) => ({ value: p.slug, label: p.name }));
   const chosen = project || options[0]?.value || "";

@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Database, FolderMinus } from "lucide-react";
-import { Link } from "react-router";
+import { Database, FolderMinus, Plus } from "lucide-react";
+import { Link, Outlet } from "react-router";
 import { Card, CardHeader } from "~/components/app/card";
 import { ChipList } from "~/components/app/chip";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
@@ -36,10 +36,8 @@ export default function ProjectServices({ params }: Route.ComponentProps) {
                 </Button>
               ) : null}
               {canCreate ? (
-                <Link
-                  to={`/services/new?project=${p.slug}`}
-                  className={buttonVariants({ variant: "secondary" })}
-                >
+                <Link to="new" className={buttonVariants()}>
+                  <Plus aria-hidden />
                   {strings.services.create}
                 </Link>
               ) : null}
@@ -97,6 +95,7 @@ export default function ProjectServices({ params }: Route.ComponentProps) {
         )}
       </Card>
       <p className="text-sm text-muted">{t.serviceNote}</p>
+      <Outlet />
     </div>
   );
 }

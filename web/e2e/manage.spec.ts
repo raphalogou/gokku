@@ -85,3 +85,37 @@ test("edit and delete a project (PRJ-1, PRJ-4)", async ({ page }) => {
   await expect(page).toHaveURL(/\/projects$/);
   await expect(page.getByText("Scratch was deleted.")).toBeVisible();
 });
+
+test("create an app from its project, which is chosen already (APP-3)", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  await page.goto("/projects/storefront");
+  await page.getByRole("link", { name: "Create app" }).click();
+  await expect(page).toHaveURL(/\/projects\/storefront\/apps\/new$/);
+  const dialog = page.getByRole("dialog", { name: "New app" });
+  await expect(dialog.getByLabel("Project")).toHaveText(/Storefront/);
+  await dialog.getByLabel("App name").fill("shop-admin");
+  await dialog.getByRole("radio", { name: /Docker image/ }).check();
+  await dialog.getByRole("button", { name: "Create app" }).click();
+  await page
+    .getByRole("dialog", { name: "shop-admin was created" })
+    .getByRole("link", { name: "Open app" })
+    .click();
+  await expect(page.getByRole("link", { name: "Storefront" }).first()).toBeVisible();
+
+  // Closing without creating returns to the project.
+  await page.goto("/projects/storefront/apps/new");
+  await page.getByRole("dialog", { name: "New app" }).getByRole("button", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(/\/projects\/storefront\/apps$/);
+  await expect(
+    page.getByRole("table", { name: "Apps in this project" }).getByRole("link", { name: "shop-admin" }),
+  ).toBeVisible();
+
+  await page.goto("/apps/shop-admin/settings");
+  await page.getByRole("button", { name: "Destroy app" }).click();
+  const confirm = page.getByRole("dialog", { name: "Destroy shop-admin?" });
+  await confirm.getByLabel("Type shop-admin to confirm").fill("shop-admin");
+  await confirm.getByRole("button", { name: "Destroy app" }).click();
+  await waitForJob(page);
+  expect(errors()).toEqual([]);
+});

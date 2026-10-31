@@ -14,8 +14,12 @@ export default [
     route("projects", "routes/projects.tsx", [route("new", "routes/projects-new.tsx")]),
     route("projects/:slug", "routes/project.tsx", [
       index("routes/project-overview.tsx"),
-      route("apps", "routes/project-apps.tsx"),
-      route("services", "routes/project-services.tsx"),
+      route("apps", "routes/project-apps.tsx", [
+        route("new", "routes/apps-new.tsx", { id: "project-apps-new" }),
+      ]),
+      route("services", "routes/project-services.tsx", [
+        route("new", "routes/services-new.tsx", { id: "project-services-new" }),
+      ]),
       route("config", "routes/project-config.tsx"),
       route("activity", "routes/project-activity.tsx"),
       route("settings", "routes/project-settings.tsx"),

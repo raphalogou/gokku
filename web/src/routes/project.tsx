@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { FolderX } from "lucide-react";
+import { FolderX, Plus } from "lucide-react";
 import { useState } from "react";
 import { isRouteErrorResponse, Link, Outlet, useRouteError } from "react-router";
 import { Breadcrumbs } from "~/components/app/breadcrumbs";
@@ -25,6 +25,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 export default function Project({ params }: Route.ComponentProps) {
   const { data: p } = useSuspenseQuery(projectQuery(params.slug));
   const canEdit = useCan("project.members.write");
+  const canCreateApp = useCan("app.create");
   const [adding, setAdding] = useState<"app" | "service" | null>(null);
   const count = p.health === "failed" ? p.status_counts.failed : p.status_counts.deploying;
   const base = `/projects/${p.slug}`;
@@ -43,12 +44,15 @@ export default function Project({ params }: Route.ComponentProps) {
         <div className="flex flex-wrap gap-3">
           <ProjectActions project={p} />
           {canEdit ? (
-            <>
-              <Button variant="secondary" onClick={() => setAdding("service")}>
-                {strings.project.addService}
-              </Button>
-              <Button onClick={() => setAdding("app")}>{strings.project.addApp}</Button>
-            </>
+            <Button variant="secondary" onClick={() => setAdding("app")}>
+              {strings.project.addApp}
+            </Button>
+          ) : null}
+          {canCreateApp ? (
+            <Link to={`${base}/apps/new`} className={buttonVariants()}>
+              <Plus aria-hidden />
+              {strings.project.createApp}
+            </Link>
           ) : null}
         </div>
       </header>
