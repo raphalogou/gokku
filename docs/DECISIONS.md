@@ -260,3 +260,22 @@ One entry per decision: date, decision, reason, alternatives.
   `domains:report --global --format json` and only the differences are added or removed; they need Dokku,
   the other settings do not. Server information on the screen comes from `GET /server`, plus Gokku's
   version in the settings.
+
+## 2026-10-31: Packaging
+
+- **Decision:** releases are static Linux binaries for amd64 and arm64 (`CGO_ENABLED=0`, SQLite through
+  modernc), named `gokku_linux_<arch>`, with `checksums.txt`, `install.sh` and `uninstall.sh`, built by
+  `task release` and published by `.github/workflows/release.yml` on a `v*` tag. The installer is POSIX `sh`
+  so it runs as `curl … | sudo sh`; it refuses a binary whose sha256 does not match before changing anything.
+  `GOKKU_REPO` has no default yet (`TODO` in `deploy/install.sh`) because the repository is not published;
+  `GOKKU_DOWNLOAD_URL` and `GOKKU_BINARY` cover mirrors and local builds.
+- **Open question 6 (sudoers form):** the rule is `gokku ALL=(root) NOPASSWD: <command -v dokku>`, as DESIGN
+  section 8, plus `Defaults:gokku !pam_session`. Gokku runs several dokku commands every few seconds, and
+  without it each one logs a PAM session open and close; sudo still logs every command. Checked on Ubuntu 24.04
+  (sudo 1.9.15) in a systemd container with the stand-in dokku binary: install, upgrade, a tampered checksum,
+  uninstall and `--purge`. Not yet checked on Debian or on a server with real Dokku.
+- **Decision:** the unit adds `StateDirectoryMode=0700` to DESIGN section 8's unit, since the data directory
+  holds the secret key. `/etc/gokku/gokku.env` is `root:gokku 0640`. The installer checks
+  `sudo -n dokku version` as the service user and warns, without failing, when it does not work.
+- **Decision:** `docs/caddy.md` covers Caddy on the host. Dokku's own Caddy proxy runs in a container driven by
+  app labels and cannot reach Gokku on the host's loopback; that setup waits for the SSH runner.

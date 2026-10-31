@@ -138,8 +138,21 @@ tasks:
     cmds:
       - go tool goose -dir migrations -s create {{.NAME}} sql
 
+  release:
+    desc: Build the Linux release binaries, checksums and install scripts into dist/
+    deps: [web:embed]
+    env:
+      CGO_ENABLED: "0"
+      GOOS: linux
+    cmds:
+      - rm -rf dist && mkdir -p dist
+      - for: [amd64, arm64]
+        cmd: GOARCH={{.ITEM}} go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o dist/gokku_linux_{{.ITEM}} ./cmd/gokku
+      - cp deploy/install.sh deploy/uninstall.sh dist/
+      - cd dist && sha256sum gokku_linux_amd64 gokku_linux_arm64 install.sh uninstall.sh > checksums.txt
+
   clean:
     desc: Remove build output
     cmds:
-      - rm -rf bin web/build
+      - rm -rf bin dist web/build
       - find internal/web/dist -mindepth 1 ! -name .gitkeep -delete

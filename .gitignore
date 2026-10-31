@@ -1,4 +1,6 @@
 /bin/
+/dist/
+/data/
 *.db
 *.db-*
 /.task/

@@ -30,12 +30,45 @@ dokku version
 dokku plugin:list
 ```
 
-Actions and logs run one command each, on request:
+Everything else runs one command on request. Commands marked "job" run as jobs with streamed output:
 
 ```
-dokku ps:restart <app>            # also ps:stop, ps:start, ps:rebuild, as jobs
+# Apps
+dokku ps:restart <app>                          # also ps:stop, ps:start, ps:rebuild; job
+dokku apps:create <app>
+dokku apps:rename <old> <new>                   # job
+dokku apps:destroy --force <app>                # job
+dokku ps:scale --format json <app>
+dokku ps:scale <app> <type>=<n>...              # job
+
+# Logs
 dokku logs <app> --num N [--ps <type>]
-dokku logs <app> --num 0 [--ps <type>] --tail      # one per open log stream
+dokku logs <app> --num 0 [--ps <type>] --tail   # one per open log stream
+
+# Config (values go on stdin, never in arguments)
+dokku config:export --format json <app>
+dokku config:import --no-restart --format json <app> -
+dokku config:unset --no-restart <app> <key>...
+
+# Domains and SSL
+dokku domains:add <app> <domain>                # also domains:remove
+dokku domains:report --global --format json
+dokku domains:add-global <domain>               # also domains:remove-global
+dokku letsencrypt:report <app>
+dokku letsencrypt:enable <app> [--force]        # job; also letsencrypt:disable
+dokku letsencrypt:set <app> email [<email>]
+dokku letsencrypt:cron-job --add                # or --remove
+
+# Deploys
+dokku git:from-image <app> <image>              # job
+dokku git:sync --build <app> <url> [<ref>]      # job
+
+# Services (<type> is a datastore plugin such as postgres)
+dokku <type>:info <name> --dsn
+dokku <type>:create <name>                      # job
+dokku <type>:destroy <name> --force             # job
+dokku <type>:link <name> <app>                  # job; also :unlink
+dokku <type>:start <name>                       # job; also :stop, :restart
 ```
 
 Reports are read in their text format; see docs/DECISIONS.md, "Bulk reports use the text format".
