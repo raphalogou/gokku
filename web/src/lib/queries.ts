@@ -1,11 +1,15 @@
-import { queryOptions } from "@tanstack/react-query";
+import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import {
   getApp,
+  getAppLogs,
+  getJob,
   getMe,
   getProject,
   getServer,
   getSetupStatus,
   listApps,
+  listAudit,
+  listJobs,
   listMySessions,
   listPlugins,
   listProjects,
@@ -13,6 +17,7 @@ import {
   listTokens,
   listUsers,
 } from "./api/gen/client";
+import type { GetAppLogsParams, ListAuditParams, ListJobsParams } from "./api/gen/model";
 
 /** Every query key in the app comes from this factory (AGENTS.md). */
 export const queryKeys = {
@@ -28,6 +33,12 @@ export const queryKeys = {
   apps: () => ["apps"] as const,
   app: (name: string) => ["apps", name] as const,
   services: () => ["services"] as const,
+  jobs: () => ["jobs"] as const,
+  jobList: (params: ListJobsParams) => ["jobs", "list", params] as const,
+  job: (id: string) => ["jobs", id] as const,
+  appLogs: (name: string, params: GetAppLogsParams) => ["logs", name, params] as const,
+  audit: () => ["audit"] as const,
+  auditList: (params: ListAuditParams) => ["audit", params] as const,
 };
 
 export const setupStatusQuery = () =>
@@ -65,3 +76,28 @@ export const appQuery = (name: string) =>
 
 export const servicesQuery = () =>
   queryOptions({ queryKey: queryKeys.services(), queryFn: ({ signal }) => listServices({ signal }) });
+
+export const jobQuery = (id: string) =>
+  queryOptions({ queryKey: queryKeys.job(id), queryFn: ({ signal }) => getJob(id, { signal }) });
+
+export const jobsQuery = (params: ListJobsParams) =>
+  queryOptions({
+    queryKey: queryKeys.jobList(params),
+    queryFn: ({ signal }) => listJobs(params, { signal }),
+  });
+
+export const appLogsQuery = (name: string, params: GetAppLogsParams) =>
+  queryOptions({
+    queryKey: queryKeys.appLogs(name, params),
+    queryFn: ({ signal }) => getAppLogs(name, params, { signal }),
+    staleTime: 0,
+  });
+
+/** The audit log, one cursor page at a time (ACT-2). */
+export const auditQuery = (params: Omit<ListAuditParams, "cursor">) =>
+  infiniteQueryOptions({
+    queryKey: queryKeys.auditList(params),
+    queryFn: ({ signal, pageParam }) => listAudit({ ...params, cursor: pageParam }, { signal }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
+  });

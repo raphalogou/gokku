@@ -23,13 +23,15 @@ function invalidate(qc: QueryClient, event: EventName, data: Record<string, stri
       keys.push(queryKeys.services(), queryKeys.projects(), queryKeys.apps());
       break;
     case "project.updated":
-      keys.push(queryKeys.projects(), queryKeys.apps(), queryKeys.services());
+      keys.push(queryKeys.projects(), queryKeys.apps(), queryKeys.services(), queryKeys.audit());
       if (data.slug) keys.push(queryKeys.project(data.slug));
       break;
     case "server.status":
       keys.push(queryKeys.server(), queryKeys.plugins());
       break;
     case "job.updated":
+      keys.push(queryKeys.jobs(), queryKeys.audit());
+      if (data.app) keys.push(queryKeys.apps(), queryKeys.projects(), queryKeys.app(data.app));
       break;
   }
   for (const queryKey of keys) void qc.invalidateQueries({ queryKey });

@@ -46,3 +46,13 @@ export function describeUserAgent(ua: string): string {
     ].find(([needle]) => ua.includes(needle as string))?.[1] ?? "";
   return os ? `${browser} on ${os}` : browser;
 }
+
+/** "41s", "1m 38s", "2h 5m" between two instants (the second defaults to now). */
+export function duration(fromIso: string, toIso?: string | null, now = Date.now()): string {
+  const ms = (toIso ? new Date(toIso).getTime() : now) - new Date(fromIso).getTime();
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ${s % 60}s`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}

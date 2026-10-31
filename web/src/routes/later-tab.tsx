@@ -6,11 +6,9 @@ import { strings } from "~/lib/strings";
 
 const titles: Record<string, string> = {
   "project-config": strings.project.tabs.config,
-  "project-activity": strings.project.tabs.activity,
   "project-settings": strings.project.tabs.settings,
   "app-config": strings.app.tabs.config,
   "app-domains": strings.app.tabs.domains,
-  "app-logs": strings.app.tabs.logs,
   "app-scaling": strings.app.tabs.scaling,
   "app-deploy": strings.app.tabs.deploy,
   "app-settings": strings.app.tabs.settings,

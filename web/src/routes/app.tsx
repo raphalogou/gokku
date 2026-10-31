@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { BoxSelect } from "lucide-react";
 import { isRouteErrorResponse, Link, Outlet, useRouteError } from "react-router";
+import { AppActions } from "~/components/app/app-actions";
 import { Breadcrumbs, type Crumb } from "~/components/app/breadcrumbs";
 import { RouteTabs } from "~/components/app/route-tabs";
 import { EmptyState } from "~/components/app/states";
@@ -17,7 +18,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   return null;
 }
 
-/** The app header and tabs around each app screen. Actions arrive with jobs in M3. */
+/** The app header, with the lifecycle actions, and tabs around each app screen. */
 export default function App({ params }: Route.ComponentProps) {
   const { data: app } = useSuspenseQuery(appQuery(params.name));
   const base = `/apps/${app.name}`;
@@ -33,15 +34,18 @@ export default function App({ params }: Route.ComponentProps) {
   return (
     <>
       <Breadcrumbs items={crumbs} />
-      <header className="mb-6 min-w-0">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-mono text-[28px] leading-tight font-bold break-all">{app.name}</h1>
-          <StatusPill kind={app.status} label={strings.appStatus[app.status]} />
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-mono text-[28px] leading-tight font-bold break-all">{app.name}</h1>
+            <StatusPill kind={app.status} label={strings.appStatus[app.status]} />
+          </div>
+          <p className="mt-1 flex flex-wrap gap-x-3 text-[15px] text-muted">
+            <span>{app.project?.name ?? strings.apps.unassigned}</span>
+            <span>{app.domains[0] ?? strings.apps.noDomain}</span>
+          </p>
         </div>
-        <p className="mt-1 flex flex-wrap gap-x-3 text-[15px] text-muted">
-          <span>{app.project?.name ?? strings.apps.unassigned}</span>
-          <span>{app.domains[0] ?? strings.apps.noDomain}</span>
-        </p>
+        <AppActions app={app} />
       </header>
       <RouteTabs
         label={app.name}

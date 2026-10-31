@@ -6,7 +6,6 @@ import { EmptyState } from "~/components/app/states";
 import { strings } from "~/lib/strings";
 
 const titles: Record<string, string> = {
-  activity: strings.nav.activity,
   settings: strings.account.settings,
 };
 

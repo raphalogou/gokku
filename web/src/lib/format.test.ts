@@ -1,5 +1,5 @@
-import { expect, test } from "vitest";
-import { describeUserAgent, timeAgo } from "./format";
+import { describe, expect, it, test } from "vitest";
+import { describeUserAgent, duration, timeAgo } from "./format";
 
 const now = Date.parse("2026-10-29T12:00:00Z");
 
@@ -21,4 +21,15 @@ test("describeUserAgent", () => {
   ).toBe("Chrome on macOS");
   expect(describeUserAgent("curl/8.9.1")).toBe("curl");
   expect(describeUserAgent("")).toBe("Unknown device");
+});
+
+describe("duration", () => {
+  it.each([
+    ["2026-10-30T09:00:00Z", "2026-10-30T09:00:02Z", "2s"],
+    ["2026-10-30T09:00:00Z", "2026-10-30T09:01:38Z", "1m 38s"],
+    ["2026-10-30T09:00:00Z", "2026-10-30T11:05:00Z", "2h 5m"],
+    ["2026-10-30T09:00:05Z", "2026-10-30T09:00:00Z", "0s"],
+  ])("%s to %s is %s", (from, to, want) => {
+    expect(duration(from, to)).toBe(want);
+  });
 });
