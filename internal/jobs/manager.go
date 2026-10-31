@@ -22,13 +22,13 @@ import (
 
 // Defaults (JOB-2, JOB-3, JOB-7).
 const (
-	DefaultWorkers   = 2
-	flushInterval    = 200 * time.Millisecond
-	flushLines       = 100
-	keepPerApp       = 20
-	defaultRetention = 30 // days, when the setting is missing
-	pruneInterval    = 6 * time.Hour
-	subscriberBuffer = 512
+	DefaultWorkers       = 2
+	flushInterval        = 200 * time.Millisecond
+	flushLines           = 100
+	keepPerApp           = 20
+	DefaultRetentionDays = 30 // when the setting is missing
+	pruneInterval        = 6 * time.Hour
+	subscriberBuffer     = 512
 )
 
 // Errors returned by the manager.
@@ -510,7 +510,7 @@ func (m *Manager) retention(ctx context.Context) {
 	t := time.NewTicker(pruneInterval)
 	defer t.Stop()
 	for {
-		days, err := m.opts.DB.SettingInt(ctx, store.SettingJobRetentionDays, defaultRetention)
+		days, err := m.opts.DB.SettingInt(ctx, store.SettingJobRetentionDays, DefaultRetentionDays)
 		if err == nil {
 			cutoff := m.opts.Now().Add(-time.Duration(days) * 24 * time.Hour)
 			n, err := m.opts.DB.PruneJobs(ctx, cutoff, keepPerApp)

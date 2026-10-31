@@ -210,10 +210,12 @@ func (e EnvStatus) Valid() bool {
 
 // Defines values for ErrorCode.
 const (
+	ErrorCodeAlreadyLinked       ErrorCode = "already_linked"
 	ErrorCodeAppExists           ErrorCode = "app_exists"
 	ErrorCodeAppProtected        ErrorCode = "app_protected"
 	ErrorCodeCannotRevokeCurrent ErrorCode = "cannot_revoke_current"
 	ErrorCodeConfirmMismatch     ErrorCode = "confirm_mismatch"
+	ErrorCodeCrossProjectLink    ErrorCode = "cross_project_link"
 	ErrorCodeCsrfFailed          ErrorCode = "csrf_failed"
 	ErrorCodeDokkuUnreachable    ErrorCode = "dokku_unreachable"
 	ErrorCodeDomainExists        ErrorCode = "domain_exists"
@@ -227,11 +229,14 @@ const (
 	ErrorCodeMethodNotAllowed    ErrorCode = "method_not_allowed"
 	ErrorCodeNotFound            ErrorCode = "not_found"
 	ErrorCodeNotInvited          ErrorCode = "not_invited"
+	ErrorCodeNotLinked           ErrorCode = "not_linked"
 	ErrorCodeNothingToRetry      ErrorCode = "nothing_to_retry"
 	ErrorCodePluginMissing       ErrorCode = "plugin_missing"
 	ErrorCodeProjectExists       ErrorCode = "project_exists"
 	ErrorCodeRateLimited         ErrorCode = "rate_limited"
 	ErrorCodeReservedKey         ErrorCode = "reserved_key"
+	ErrorCodeServiceExists       ErrorCode = "service_exists"
+	ErrorCodeServiceLinked       ErrorCode = "service_linked"
 	ErrorCodeSetupComplete       ErrorCode = "setup_complete"
 	ErrorCodeTokenNameTaken      ErrorCode = "token_name_taken"
 	ErrorCodeTooManyStreams      ErrorCode = "too_many_streams"
@@ -244,6 +249,8 @@ const (
 // Valid indicates whether the value is a known member of the ErrorCode enum.
 func (e ErrorCode) Valid() bool {
 	switch e {
+	case ErrorCodeAlreadyLinked:
+		return true
 	case ErrorCodeAppExists:
 		return true
 	case ErrorCodeAppProtected:
@@ -251,6 +258,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeCannotRevokeCurrent:
 		return true
 	case ErrorCodeConfirmMismatch:
+		return true
+	case ErrorCodeCrossProjectLink:
 		return true
 	case ErrorCodeCsrfFailed:
 		return true
@@ -278,6 +287,8 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeNotInvited:
 		return true
+	case ErrorCodeNotLinked:
+		return true
 	case ErrorCodeNothingToRetry:
 		return true
 	case ErrorCodePluginMissing:
@@ -287,6 +298,10 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeRateLimited:
 		return true
 	case ErrorCodeReservedKey:
+		return true
+	case ErrorCodeServiceExists:
+		return true
+	case ErrorCodeServiceLinked:
 		return true
 	case ErrorCodeSetupComplete:
 		return true
@@ -897,6 +912,17 @@ type CreateProjectRequest struct {
 	Slug ProjectSlug `json:"slug"`
 }
 
+// CreateServiceRequest defines model for CreateServiceRequest.
+type CreateServiceRequest struct {
+	Name string `json:"name"`
+
+	// Project Project slug; a service is created in a project (SVC-2)
+	Project string `json:"project"`
+
+	// Type A usable datastore plugin, such as postgres
+	Type string `json:"type"`
+}
+
 // CreateTokenRequest defines model for CreateTokenRequest.
 type CreateTokenRequest struct {
 	Name string `json:"name"`
@@ -1295,6 +1321,48 @@ type ServerInfo struct {
 	Unavailable map[string]string `json:"unavailable"`
 }
 
+// ServiceConnection The connection string's parts without its password (SVC-4)
+type ServiceConnection struct {
+	Database    *string `json:"database,omitempty"`
+	HasPassword *bool   `json:"has_password,omitempty"`
+	Host        string  `json:"host"`
+
+	// Masked The connection string with the password replaced
+	Masked   string  `json:"masked"`
+	Port     *string `json:"port,omitempty"`
+	Scheme   string  `json:"scheme"`
+	Username *string `json:"username,omitempty"`
+}
+
+// ServiceConnectionRevealed defines model for ServiceConnectionRevealed.
+type ServiceConnectionRevealed struct {
+	Dsn string `json:"dsn"`
+}
+
+// ServiceDetail defines model for ServiceDetail.
+type ServiceDetail struct {
+	// Connection Null when Dokku cannot be reached
+	Connection *ServiceConnection `json:"connection,omitempty"`
+
+	// LinkEnv The variable linking sets on an app, such as DATABASE_URL
+	LinkEnv string `json:"link_env"`
+
+	// Links Names of the linked apps
+	Links   []string    `json:"links"`
+	Name    string      `json:"name"`
+	Project *ProjectRef `json:"project,omitempty"`
+
+	// Status missing means the service container does not exist
+	Status  ServiceStatus `json:"status"`
+	Type    string        `json:"type"`
+	Version string        `json:"version"`
+}
+
+// ServiceLinkRequest defines model for ServiceLinkRequest.
+type ServiceLinkRequest struct {
+	App string `json:"app"`
+}
+
 // ServiceRef defines model for ServiceRef.
 type ServiceRef struct {
 	Name string `json:"name"`
@@ -1328,6 +1396,19 @@ type Session struct {
 	Ip         string    `json:"ip"`
 	LastSeenAt time.Time `json:"last_seen_at"`
 	UserAgent  string    `json:"user_agent"`
+}
+
+// Settings defines model for Settings.
+type Settings struct {
+	// GlobalDomains Null when Dokku cannot be reached
+	GlobalDomains     *[]string `json:"global_domains,omitempty"`
+	GokkuVersion      string    `json:"gokku_version"`
+	JobRetentionDays  int       `json:"job_retention_days"`
+	MinPasswordLength int       `json:"min_password_length"`
+
+	// ProtectedApps Apps that cannot be stopped, rebuilt, renamed, moved or destroyed (SET-2)
+	ProtectedApps        []string `json:"protected_apps"`
+	SessionLifetimeHours int      `json:"session_lifetime_hours"`
 }
 
 // SetupStatus defines model for SetupStatus.
@@ -1427,6 +1508,15 @@ type UpdateMeRequest struct {
 type UpdateProjectRequest struct {
 	Description *string `json:"description,omitempty"`
 	Name        *string `json:"name,omitempty"`
+}
+
+// UpdateSettingsRequest defines model for UpdateSettingsRequest.
+type UpdateSettingsRequest struct {
+	GlobalDomains        *[]string `json:"global_domains,omitempty"`
+	JobRetentionDays     *int      `json:"job_retention_days,omitempty"`
+	MinPasswordLength    *int      `json:"min_password_length,omitempty"`
+	ProtectedApps        *[]string `json:"protected_apps,omitempty"`
+	SessionLifetimeHours *int      `json:"session_lifetime_hours,omitempty"`
 }
 
 // UpdateUserRequest defines model for UpdateUserRequest.
@@ -1541,6 +1631,12 @@ type DeleteProjectParams struct {
 	Confirm string `form:"confirm" json:"confirm"`
 }
 
+// DestroyServiceParams defines parameters for DestroyService.
+type DestroyServiceParams struct {
+	// Confirm Must equal the service name
+	Confirm string `form:"confirm" json:"confirm"`
+}
+
 // CreateAppJSONRequestBody defines body for CreateApp for application/json ContentType.
 type CreateAppJSONRequestBody = CreateAppRequest
 
@@ -1591,6 +1687,18 @@ type ApplyProjectEnvJSONRequestBody = ApplyEnvRequest
 
 // RevealProjectEnvJSONRequestBody defines body for RevealProjectEnv for application/json ContentType.
 type RevealProjectEnvJSONRequestBody = RevealRequest
+
+// CreateServiceJSONRequestBody defines body for CreateService for application/json ContentType.
+type CreateServiceJSONRequestBody = CreateServiceRequest
+
+// LinkServiceJSONRequestBody defines body for LinkService for application/json ContentType.
+type LinkServiceJSONRequestBody = ServiceLinkRequest
+
+// UnlinkServiceJSONRequestBody defines body for UnlinkService for application/json ContentType.
+type UnlinkServiceJSONRequestBody = ServiceLinkRequest
+
+// UpdateSettingsJSONRequestBody defines body for UpdateSettings for application/json ContentType.
+type UpdateSettingsJSONRequestBody = UpdateSettingsRequest
 
 // CompleteSetupJSONRequestBody defines body for CompleteSetup for application/json ContentType.
 type CompleteSetupJSONRequestBody = Credentials

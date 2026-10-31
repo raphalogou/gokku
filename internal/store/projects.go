@@ -152,3 +152,10 @@ func (db *DB) execOne(ctx context.Context, query string, args ...any) error {
 	}
 	return nil
 }
+
+// ForgetService deletes a service's membership row, after it was destroyed (SVC-2).
+func (db *DB) ForgetService(ctx context.Context, s ServiceKey) error {
+	_, err := db.W.ExecContext(ctx, `DELETE FROM project_services WHERE service_type = ? AND service_name = ?`,
+		s.Type, s.Name)
+	return err
+}

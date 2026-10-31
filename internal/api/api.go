@@ -35,6 +35,7 @@ type API struct {
 	logStreams *streamLimiter
 	serverName string
 	dokkuHost  string
+	version    string
 	heartbeat  time.Duration
 	handler    http.Handler
 	routes     []RouteInfo
@@ -55,6 +56,8 @@ type Options struct {
 	ServerName string
 	// DokkuHost is the host in git remote instructions; empty means the request host.
 	DokkuHost string
+	// Version is Gokku's version, shown in Settings.
+	Version string
 	// Heartbeat is the SSE heartbeat interval; zero means DefaultHeartbeat (EVT-3).
 	Heartbeat time.Duration
 }
@@ -64,7 +67,7 @@ func New(opts Options) (*API, error) {
 	a := &API{
 		auth: opts.Auth, db: opts.DB, audit: opts.Audit, log: opts.Log, snap: opts.Snapshot, hub: opts.Hub,
 		jobs: opts.Jobs, dokku: opts.Dokku, env: opts.Env, logStreams: newStreamLimiter(),
-		serverName: opts.ServerName, dokkuHost: opts.DokkuHost, heartbeat: opts.Heartbeat,
+		serverName: opts.ServerName, dokkuHost: opts.DokkuHost, version: opts.Version, heartbeat: opts.Heartbeat,
 	}
 	if a.heartbeat == 0 {
 		a.heartbeat = DefaultHeartbeat
@@ -176,4 +179,16 @@ func (a *API) register(r *router) {
 	r.Route(http.MethodGet, "/audit/export", authz.AuditExport, a.exportAudit)
 
 	r.Route(http.MethodGet, "/services", authz.ServiceView, a.listServices)
+	r.Route(http.MethodPost, "/services", authz.ServiceCreate, a.createService)
+	r.Route(http.MethodGet, "/services/{type}/{name}", authz.ServiceView, a.getService)
+	r.Route(http.MethodDelete, "/services/{type}/{name}", authz.ServiceDestroy, a.destroyService)
+	r.Route(http.MethodPost, "/services/{type}/{name}/reveal", authz.ServiceSecretsRev, a.revealService)
+	r.Route(http.MethodPost, "/services/{type}/{name}/link", authz.ServiceLink, a.serviceLink(true))
+	r.Route(http.MethodPost, "/services/{type}/{name}/unlink", authz.ServiceLink, a.serviceLink(false))
+	for _, action := range dokku.ServiceActions {
+		r.Route(http.MethodPost, "/services/{type}/{name}/"+action, authz.ServiceOperate, a.serviceAction(action))
+	}
+
+	r.Route(http.MethodGet, "/settings", authz.SettingsWrite, a.getSettings)
+	r.Route(http.MethodPut, "/settings", authz.SettingsWrite, a.updateSettings)
 }

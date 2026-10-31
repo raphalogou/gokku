@@ -336,6 +336,53 @@ export const RescanServerResponse = zod.object({
 
 
 /**
+ * @summary Server-wide settings (SET-1, SET-2)
+ */
+export const GetSettingsResponse = zod.object({
+  "global_domains": zod.array(zod.string()).nullish().describe('Null when Dokku cannot be reached'),
+  "session_lifetime_hours": zod.int(),
+  "min_password_length": zod.int(),
+  "job_retention_days": zod.int(),
+  "protected_apps": zod.array(zod.string()).describe('Apps that cannot be stopped, rebuilt, renamed, moved or destroyed (SET-2)'),
+  "gokku_version": zod.string()
+})
+
+
+/**
+ * @summary Change settings; fields left out keep their value. Global domains are written to Dokku (SET-1)
+ */
+export const updateSettingsBodyGlobalDomainsMax = 50;
+
+export const updateSettingsBodySessionLifetimeHoursMax = 8760;
+
+export const updateSettingsBodyMinPasswordLengthMin = 8;
+export const updateSettingsBodyMinPasswordLengthMax = 128;
+
+export const updateSettingsBodyJobRetentionDaysMax = 3650;
+
+export const updateSettingsBodyProtectedAppsMax = 200;
+
+
+
+export const UpdateSettingsBody = zod.object({
+  "global_domains": zod.array(zod.string()).max(updateSettingsBodyGlobalDomainsMax).optional(),
+  "session_lifetime_hours": zod.int().min(1).max(updateSettingsBodySessionLifetimeHoursMax).optional(),
+  "min_password_length": zod.int().min(updateSettingsBodyMinPasswordLengthMin).max(updateSettingsBodyMinPasswordLengthMax).optional(),
+  "job_retention_days": zod.int().min(1).max(updateSettingsBodyJobRetentionDaysMax).optional(),
+  "protected_apps": zod.array(zod.string()).max(updateSettingsBodyProtectedAppsMax).optional()
+})
+
+export const UpdateSettingsResponse = zod.object({
+  "global_domains": zod.array(zod.string()).nullish().describe('Null when Dokku cannot be reached'),
+  "session_lifetime_hours": zod.int(),
+  "min_password_length": zod.int(),
+  "job_retention_days": zod.int(),
+  "protected_apps": zod.array(zod.string()).describe('Apps that cannot be stopped, rebuilt, renamed, moved or destroyed (SET-2)'),
+  "gokku_version": zod.string()
+})
+
+
+/**
  * @summary Installed plugins that Gokku uses and recognised plugins that are not installed (PLG-1)
  */
 export const ListPluginsResponse = zod.object({
@@ -863,6 +910,159 @@ export const ListServicesResponseItem = zod.object({
   "links": zod.array(zod.string()).describe('Names of the linked apps')
 })
 export const ListServicesResponse = zod.array(ListServicesResponseItem)
+
+
+/**
+ * @summary Create a service in a project, as a job (SVC-2)
+ */
+export const createServiceBodyNameMax = 64;
+
+
+
+export const CreateServiceBody = zod.object({
+  "type": zod.string().describe('A usable datastore plugin, such as postgres'),
+  "name": zod.string().max(createServiceBodyNameMax),
+  "project": zod.string().describe('Project slug; a service is created in a project (SVC-2)')
+})
+
+export const CreateServiceResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary One service with its links and masked connection details (SVC-4)
+ */
+export const GetServiceParams = zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const GetServiceResponse = zod.object({
+  "type": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'missing']).describe('missing means the service container does not exist'),
+  "version": zod.string(),
+  "project": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]).optional(),
+  "links": zod.array(zod.string()).describe('Names of the linked apps')
+}).and(zod.object({
+  "link_env": zod.string().describe('The variable linking sets on an app, such as DATABASE_URL'),
+  "connection": zod.union([zod.object({
+  "scheme": zod.string(),
+  "host": zod.string(),
+  "port": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "database": zod.string().nullish(),
+  "masked": zod.string().describe('The connection string with the password replaced'),
+  "has_password": zod.boolean().optional()
+}).describe('The connection string\'s parts without its password (SVC-4)'),zod.null()]).optional().describe('Null when Dokku cannot be reached')
+}))
+
+
+/**
+ * @summary Destroy the service as a job; refused while apps are linked (SVC-2)
+ */
+export const DestroyServiceParams = zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const DestroyServiceQueryParams = zod.object({
+  "confirm": zod.string().describe('Must equal the service name')
+})
+
+export const DestroyServiceResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary The connection string with its password; audited without it (SVC-4)
+ */
+export const RevealServiceParams = zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const RevealServiceResponse = zod.object({
+  "dsn": zod.string()
+})
+
+
+/**
+ * @summary Link an app in the same project; the app restarts (SVC-3)
+ */
+export const LinkServiceParams = zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const LinkServiceBody = zod.object({
+  "app": zod.string()
+})
+
+export const LinkServiceResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Unlink an app; the app restarts (SVC-3)
+ */
+export const UnlinkServiceParams = zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const UnlinkServiceBody = zod.object({
+  "app": zod.string()
+})
+
+export const UnlinkServiceResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Start the service container, as a job (SVC-2)
+ */
+export const StartServiceParams = zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const StartServiceResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Stop the service container, as a job (SVC-2)
+ */
+export const StopServiceParams = zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const StopServiceResponse = zod.object({
+  "job_id": zod.string()
+})
+
+
+/**
+ * @summary Restart the service container, as a job (SVC-2)
+ */
+export const RestartServiceParams = zod.object({
+  "type": zod.string(),
+  "name": zod.string()
+})
+
+export const RestartServiceResponse = zod.object({
+  "job_id": zod.string()
+})
 
 
 /**

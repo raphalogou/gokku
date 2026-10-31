@@ -44,5 +44,10 @@ export const ErrorCode = {
   plugin_missing: 'plugin_missing',
   app_exists: 'app_exists',
   nothing_to_retry: 'nothing_to_retry',
+  service_exists: 'service_exists',
+  service_linked: 'service_linked',
+  cross_project_link: 'cross_project_link',
+  already_linked: 'already_linked',
+  not_linked: 'not_linked',
   internal: 'internal',
 } as const;

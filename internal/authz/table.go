@@ -23,6 +23,7 @@ const (
 	AppScale          Action = "app.scale"
 	AppDeploy         Action = "app.deploy"
 	ServiceLink       Action = "service.link"
+	ServiceOperate    Action = "service.operate"
 	ServiceSecretsRev Action = "service.secrets.reveal"
 	ProjectOperate    Action = "project.operate"
 	JobCancel         Action = "job.cancel"
@@ -67,6 +68,7 @@ var minRole = map[Action]Role{
 	AppScale:          RoleOperator,
 	AppDeploy:         RoleOperator,
 	ServiceLink:       RoleOperator,
+	ServiceOperate:    RoleOperator,
 	ServiceSecretsRev: RoleOperator,
 	ProjectOperate:    RoleOperator,
 	JobCancel:         RoleOperator,

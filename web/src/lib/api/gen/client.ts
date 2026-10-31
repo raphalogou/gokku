@@ -26,11 +26,13 @@ import type {
   ConfigUpdated,
   CreateAppRequest,
   CreateProjectRequest,
+  CreateServiceRequest,
   CreateTokenRequest,
   Credentials,
   DeleteProjectParams,
   DeployRequest,
   DestroyAppParams,
+  DestroyServiceParams,
   DomainRequest,
   ExportAuditParams,
   GetAppLogsParams,
@@ -57,8 +59,12 @@ import type {
   SSLStatus,
   ScaleRequest,
   ServerInfo,
+  ServiceConnectionRevealed,
+  ServiceDetail,
+  ServiceLinkRequest,
   ServiceSummary,
   Session,
+  Settings,
   SetupStatus,
   StreamAppLogsParams,
   StreamJobParams,
@@ -68,6 +74,7 @@ import type {
   UpdateConfigRequest,
   UpdateMeRequest,
   UpdateProjectRequest,
+  UpdateSettingsRequest,
   UpdateUserRequest,
   User
 } from './model';
@@ -652,6 +659,68 @@ export const rescanServer = async ( options?: Parameters<typeof apiFetch>[1]): P
     method: 'POST'
 
 
+  }
+);}
+
+
+
+export const getGetSettingsUrl = () => {
+
+
+
+
+  return `/api/v1/settings`
+}
+
+/**
+ * @summary Server-wide settings (SET-1, SET-2)
+ */
+export const getSettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<Settings> => {
+
+  return apiFetch<Settings>(getGetSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getUpdateSettingsUrl = () => {
+
+
+
+
+  return `/api/v1/settings`
+}
+
+/**
+ * @summary Change settings; fields left out keep their value. Global domains are written to Dokku (SET-1)
+ */
+export const updateSettings = async (updateSettingsRequest: UpdateSettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<Settings> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<Settings>(getUpdateSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSettingsRequest)
   }
 );}
 
@@ -1242,6 +1311,291 @@ export const listServices = async ( options?: Parameters<typeof apiFetch>[1]): P
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getCreateServiceUrl = () => {
+
+
+
+
+  return `/api/v1/services`
+}
+
+/**
+ * @summary Create a service in a project, as a job (SVC-2)
+ */
+export const createService = async (createServiceRequest: CreateServiceRequest, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<JobRef>(getCreateServiceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createServiceRequest)
+  }
+);}
+
+
+
+export const getGetServiceUrl = (type: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/services/${type}/${name}`
+}
+
+/**
+ * @summary One service with its links and masked connection details (SVC-4)
+ */
+export const getService = async (type: string,
+    name: string, options?: Parameters<typeof apiFetch>[1]): Promise<ServiceDetail> => {
+
+  return apiFetch<ServiceDetail>(getGetServiceUrl(type,name),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getDestroyServiceUrl = (type: string,
+    name: string,
+    params: DestroyServiceParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/services/${type}/${name}?${stringifiedParams}` : `/api/v1/services/${type}/${name}`
+}
+
+/**
+ * @summary Destroy the service as a job; refused while apps are linked (SVC-2)
+ */
+export const destroyService = async (type: string,
+    name: string,
+    params: DestroyServiceParams, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getDestroyServiceUrl(type,name,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export const getRevealServiceUrl = (type: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/services/${type}/${name}/reveal`
+}
+
+/**
+ * @summary The connection string with its password; audited without it (SVC-4)
+ */
+export const revealService = async (type: string,
+    name: string, options?: Parameters<typeof apiFetch>[1]): Promise<ServiceConnectionRevealed> => {
+
+  return apiFetch<ServiceConnectionRevealed>(getRevealServiceUrl(type,name),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getLinkServiceUrl = (type: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/services/${type}/${name}/link`
+}
+
+/**
+ * @summary Link an app in the same project; the app restarts (SVC-3)
+ */
+export const linkService = async (type: string,
+    name: string,
+    serviceLinkRequest: ServiceLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<JobRef>(getLinkServiceUrl(type,name),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(serviceLinkRequest)
+  }
+);}
+
+
+
+export const getUnlinkServiceUrl = (type: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/services/${type}/${name}/unlink`
+}
+
+/**
+ * @summary Unlink an app; the app restarts (SVC-3)
+ */
+export const unlinkService = async (type: string,
+    name: string,
+    serviceLinkRequest: ServiceLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<JobRef>(getUnlinkServiceUrl(type,name),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(serviceLinkRequest)
+  }
+);}
+
+
+
+export const getStartServiceUrl = (type: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/services/${type}/${name}/start`
+}
+
+/**
+ * @summary Start the service container, as a job (SVC-2)
+ */
+export const startService = async (type: string,
+    name: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getStartServiceUrl(type,name),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getStopServiceUrl = (type: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/services/${type}/${name}/stop`
+}
+
+/**
+ * @summary Stop the service container, as a job (SVC-2)
+ */
+export const stopService = async (type: string,
+    name: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getStopServiceUrl(type,name),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export const getRestartServiceUrl = (type: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/services/${type}/${name}/restart`
+}
+
+/**
+ * @summary Restart the service container, as a job (SVC-2)
+ */
+export const restartService = async (type: string,
+    name: string, options?: Parameters<typeof apiFetch>[1]): Promise<JobRef> => {
+
+  return apiFetch<JobRef>(getRestartServiceUrl(type,name),
+  {
+    ...options,
+    method: 'POST'
 
 
   }

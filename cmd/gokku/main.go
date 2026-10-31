@@ -151,6 +151,7 @@ func serve(args []string) error {
 	apiHandler, err := api.New(api.Options{
 		Auth: authSvc, DB: db, Audit: audit.New(db, log), Log: log, Snapshot: snap, Hub: hub,
 		Jobs: manager, Dokku: client, Env: projects.NewEnv(db, box, client), ServerName: serverName, DokkuHost: cfg.DokkuHost,
+		Version: version,
 	})
 	if err != nil {
 		return err

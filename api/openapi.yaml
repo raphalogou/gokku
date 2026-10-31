@@ -330,6 +330,37 @@ paths:
               schema: { $ref: "#/components/schemas/ServerInfo" }
         "403": { $ref: "#/components/responses/Error" }
 
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [server]
+      summary: Server-wide settings (SET-1, SET-2)
+      responses:
+        "200":
+          description: The settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+        "403": { $ref: "#/components/responses/Error" }
+    put:
+      operationId: updateSettings
+      tags: [server]
+      summary: "Change settings; fields left out keep their value. Global domains are written to Dokku (SET-1)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateSettingsRequest" }
+      responses:
+        "200":
+          description: The settings after the change
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
   /plugins:
     get:
       operationId: listPlugins
@@ -664,6 +695,180 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/ServiceSummary" }
+    post:
+      operationId: createService
+      tags: [services]
+      summary: "Create a service in a project, as a job (SVC-2)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateServiceRequest" }
+      responses:
+        "202":
+          description: The create job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /services/{type}/{name}:
+    parameters:
+      - { name: type, in: path, required: true, schema: { type: string } }
+      - { name: name, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getService
+      tags: [services]
+      summary: "One service with its links and masked connection details (SVC-4)"
+      responses:
+        "200":
+          description: The service
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceDetail" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: destroyService
+      tags: [services]
+      summary: "Destroy the service as a job; refused while apps are linked (SVC-2)"
+      parameters:
+        - { name: confirm, in: query, required: true, schema: { type: string }, description: Must equal the service name }
+      responses:
+        "202":
+          description: The destroy job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /services/{type}/{name}/reveal:
+    parameters:
+      - { name: type, in: path, required: true, schema: { type: string } }
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: revealService
+      tags: [services]
+      summary: "The connection string with its password; audited without it (SVC-4)"
+      responses:
+        "200":
+          description: The connection string
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceConnectionRevealed" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /services/{type}/{name}/link:
+    parameters:
+      - { name: type, in: path, required: true, schema: { type: string } }
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: linkService
+      tags: [services]
+      summary: "Link an app in the same project; the app restarts (SVC-3)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServiceLinkRequest" }
+      responses:
+        "202":
+          description: The job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /services/{type}/{name}/unlink:
+    parameters:
+      - { name: type, in: path, required: true, schema: { type: string } }
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: unlinkService
+      tags: [services]
+      summary: "Unlink an app; the app restarts (SVC-3)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServiceLinkRequest" }
+      responses:
+        "202":
+          description: The job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /services/{type}/{name}/start:
+    parameters:
+      - { name: type, in: path, required: true, schema: { type: string } }
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: startService
+      tags: [services]
+      summary: "Start the service container, as a job (SVC-2)"
+      responses:
+        "202":
+          description: The job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /services/{type}/{name}/stop:
+    parameters:
+      - { name: type, in: path, required: true, schema: { type: string } }
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: stopService
+      tags: [services]
+      summary: "Stop the service container, as a job (SVC-2)"
+      responses:
+        "202":
+          description: The job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /services/{type}/{name}/restart:
+    parameters:
+      - { name: type, in: path, required: true, schema: { type: string } }
+      - { name: name, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: restartService
+      tags: [services]
+      summary: "Restart the service container, as a job (SVC-2)"
+      responses:
+        "202":
+          description: The job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
 
   /apps/{name}/actions/restart:
     parameters:
@@ -1263,6 +1468,11 @@ components:
         - plugin_missing
         - app_exists
         - nothing_to_retry
+        - service_exists
+        - service_linked
+        - cross_project_link
+        - already_linked
+        - not_linked
         - internal
 
     Role:
@@ -1550,6 +1760,84 @@ components:
           type: array
           items: { type: string }
           description: Names of the linked apps
+
+    CreateServiceRequest:
+      type: object
+      required: [type, name, project]
+      properties:
+        type: { type: string, description: "A usable datastore plugin, such as postgres" }
+        name: { type: string, maxLength: 64 }
+        project: { type: string, description: Project slug; a service is created in a project (SVC-2) }
+
+    ServiceLinkRequest:
+      type: object
+      required: [app]
+      properties:
+        app: { type: string }
+
+    ServiceConnection:
+      type: object
+      required: [scheme, host, masked]
+      description: The connection string's parts without its password (SVC-4)
+      properties:
+        scheme: { type: string }
+        host: { type: string }
+        port: { type: string, nullable: true }
+        username: { type: string, nullable: true }
+        database: { type: string, nullable: true }
+        masked: { type: string, description: The connection string with the password replaced }
+        has_password: { type: boolean }
+
+    ServiceDetail:
+      allOf:
+        - { $ref: "#/components/schemas/ServiceSummary" }
+        - type: object
+          required: [link_env]
+          properties:
+            link_env: { type: string, description: "The variable linking sets on an app, such as DATABASE_URL" }
+            connection:
+              allOf: [{ $ref: "#/components/schemas/ServiceConnection" }]
+              nullable: true
+              description: Null when Dokku cannot be reached
+
+    ServiceConnectionRevealed:
+      type: object
+      required: [dsn]
+      properties:
+        dsn: { type: string }
+
+    Settings:
+      type: object
+      required: [session_lifetime_hours, min_password_length, job_retention_days, protected_apps, gokku_version]
+      properties:
+        global_domains:
+          type: array
+          items: { type: string }
+          nullable: true
+          description: Null when Dokku cannot be reached
+        session_lifetime_hours: { type: integer }
+        min_password_length: { type: integer }
+        job_retention_days: { type: integer }
+        protected_apps:
+          type: array
+          items: { type: string }
+          description: Apps that cannot be stopped, rebuilt, renamed, moved or destroyed (SET-2)
+        gokku_version: { type: string }
+
+    UpdateSettingsRequest:
+      type: object
+      properties:
+        global_domains:
+          type: array
+          items: { type: string }
+          maxItems: 50
+        session_lifetime_hours: { type: integer, minimum: 1, maximum: 8760 }
+        min_password_length: { type: integer, minimum: 8, maximum: 128 }
+        job_retention_days: { type: integer, minimum: 1, maximum: 3650 }
+        protected_apps:
+          type: array
+          items: { type: string }
+          maxItems: 200
 
     StatusCounts:
       type: object

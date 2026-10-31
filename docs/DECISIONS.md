@@ -237,3 +237,26 @@ One entry per decision: date, decision, reason, alternatives.
   (SET-2) and list them in the audit entry's
   detail. Restart all also starts apps that were stopped, as
   `ps:restart` does.
+
+## 2026-10-31: Services and settings
+
+- **Decision (SVC-2):** create, destroy, start, stop and restart run as jobs. Create needs a usable datastore
+  plugin (`plugin_missing` otherwise) and a project. Destroy is refused with `service_linked` while apps are
+  linked, as the plugin itself refuses, so the UI can say which apps to unlink. `<type>:destroy <name>
+  --force` keeps SPEC section 6's order: the datastore plugins parse flags with pflag, which accepts them
+  anywhere. Start, stop and restart use a new `service.operate` action at operator level: SPEC section 3
+  names no action for them, and operators already run the same commands on apps.
+- **Decision (SVC-3):** link and unlink run as jobs that hold the app's lock, because the app restarts. Link
+  requires the app and the service to be in the same project, or both unassigned (`cross_project_link`).
+  Unlink is allowed across projects so a link made outside Gokku can be undone. `already_linked` and
+  `not_linked` report a link that is already in the asked state.
+- **Decision (SVC-4):** `GET /services/{type}/{name}` returns the connection string's scheme, host, port, user
+  and database with the password masked. `POST /services/{type}/{name}/reveal` (not in SPEC section 8's table)
+  returns the full string to operators and is audited as `services:reveal` without it. Service command output
+  never carries a password: `create`'s closing info report is cut off and credentials in URLs are masked in
+  every line and error, since the plugin's generated password is not known in advance.
+- **Decision (SET-1):** `GET/PUT /settings` are admin-only (`settings.write`, also for reading: the screen is
+  admin-only). `PUT` changes only the fields it is given. Global domains are compared with
+  `domains:report --global --format json` and only the differences are added or removed; they need Dokku,
+  the other settings do not. Server information on the screen comes from `GET /server`, plus Gokku's
+  version in the settings.
