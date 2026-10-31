@@ -40,5 +40,7 @@ export const ErrorCode = {
   too_many_streams: 'too_many_streams',
   managed_variable: 'managed_variable',
   reserved_key: 'reserved_key',
+  domain_exists: 'domain_exists',
+  plugin_missing: 'plugin_missing',
   internal: 'internal',
 } as const;

@@ -125,6 +125,7 @@ const (
 	ErrorCodeConfirmMismatch     ErrorCode = "confirm_mismatch"
 	ErrorCodeCsrfFailed          ErrorCode = "csrf_failed"
 	ErrorCodeDokkuUnreachable    ErrorCode = "dokku_unreachable"
+	ErrorCodeDomainExists        ErrorCode = "domain_exists"
 	ErrorCodeForbidden           ErrorCode = "forbidden"
 	ErrorCodeInternal            ErrorCode = "internal"
 	ErrorCodeInvalidCredentials  ErrorCode = "invalid_credentials"
@@ -135,6 +136,7 @@ const (
 	ErrorCodeMethodNotAllowed    ErrorCode = "method_not_allowed"
 	ErrorCodeNotFound            ErrorCode = "not_found"
 	ErrorCodeNotInvited          ErrorCode = "not_invited"
+	ErrorCodePluginMissing       ErrorCode = "plugin_missing"
 	ErrorCodeProjectExists       ErrorCode = "project_exists"
 	ErrorCodeRateLimited         ErrorCode = "rate_limited"
 	ErrorCodeReservedKey         ErrorCode = "reserved_key"
@@ -160,6 +162,8 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeDokkuUnreachable:
 		return true
+	case ErrorCodeDomainExists:
+		return true
 	case ErrorCodeForbidden:
 		return true
 	case ErrorCodeInternal:
@@ -179,6 +183,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeNotFound:
 		return true
 	case ErrorCodeNotInvited:
+		return true
+	case ErrorCodePluginMissing:
 		return true
 	case ErrorCodeProjectExists:
 		return true
@@ -331,6 +337,33 @@ func (e Role) Valid() bool {
 	case RoleOperator:
 		return true
 	case RoleViewer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SSLRequestAction.
+const (
+	SSLRequestActionDisable      SSLRequestAction = "disable"
+	SSLRequestActionEnable       SSLRequestAction = "enable"
+	SSLRequestActionRenew        SSLRequestAction = "renew"
+	SSLRequestActionSetAutoRenew SSLRequestAction = "set_auto_renew"
+	SSLRequestActionSetEmail     SSLRequestAction = "set_email"
+)
+
+// Valid indicates whether the value is a known member of the SSLRequestAction enum.
+func (e SSLRequestAction) Valid() bool {
+	switch e {
+	case SSLRequestActionDisable:
+		return true
+	case SSLRequestActionEnable:
+		return true
+	case SSLRequestActionRenew:
+		return true
+	case SSLRequestActionSetAutoRenew:
+		return true
+	case SSLRequestActionSetEmail:
 		return true
 	default:
 		return false
@@ -619,6 +652,13 @@ type AppDetail struct {
 	Status AppStatus `json:"status"`
 }
 
+// AppDomains defines model for AppDomains.
+type AppDomains struct {
+	// DnsTarget Where A records should point: GOKKU_DOKKU_HOST, or the request host (SSL-3)
+	DnsTarget string   `json:"dns_target"`
+	Domains   []string `json:"domains"`
+}
+
 // AppEnvStatus defines model for AppEnvStatus.
 type AppEnvStatus struct {
 	App    string    `json:"app"`
@@ -727,6 +767,11 @@ type Credentials struct {
 	// Password Minimum length is SetupStatus.min_password_length (AUTH-2)
 	Password Password `json:"password"`
 	Username string   `json:"username"`
+}
+
+// DomainRequest defines model for DomainRequest.
+type DomainRequest struct {
+	Domain string `json:"domain"`
 }
 
 // EnvStatus defines model for EnvStatus.
@@ -991,6 +1036,34 @@ type RevealedValues struct {
 // Role defines model for Role.
 type Role string
 
+// SSLRequest defines model for SSLRequest.
+type SSLRequest struct {
+	Action    SSLRequestAction `json:"action"`
+	AutoRenew *bool            `json:"auto_renew,omitempty"`
+	Email     *string          `json:"email,omitempty"`
+}
+
+// SSLRequestAction defines model for SSLRequest.Action.
+type SSLRequestAction string
+
+// SSLStatus defines model for SSLStatus.
+type SSLStatus struct {
+	Active bool `json:"active"`
+
+	// AutoRenew The plugin's renewal cron job is installed; it renews every app
+	AutoRenew bool `json:"auto_renew"`
+
+	// Available The letsencrypt plugin is installed
+	Available bool `json:"available"`
+
+	// Email The app's contact email, else the global one
+	Email     *string    `json:"email,omitempty"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+
+	// Uncovered Domains added through Gokku after the certificate was issued (SSL-2)
+	Uncovered []string `json:"uncovered"`
+}
+
 // ServerInfo defines model for ServerInfo.
 type ServerInfo struct {
 	// Datastores Datastore plugins Gokku can use (SVC-1)
@@ -1176,6 +1249,11 @@ type UserStatus string
 // Username Lowercase letters, digits, dash and underscore; starts with a letter or digit (USR-1)
 type Username = string
 
+// RemoveAppDomainParams defines parameters for RemoveAppDomain.
+type RemoveAppDomainParams struct {
+	Domain string `form:"domain" json:"domain"`
+}
+
 // GetAppLogsParams defines parameters for GetAppLogs.
 type GetAppLogsParams struct {
 	Lines *GetAppLogsParamsLines `form:"lines,omitempty" json:"lines,omitempty"`
@@ -1254,6 +1332,12 @@ type UpdateAppConfigJSONRequestBody = UpdateConfigRequest
 
 // RevealAppConfigJSONRequestBody defines body for RevealAppConfig for application/json ContentType.
 type RevealAppConfigJSONRequestBody = RevealRequest
+
+// AddAppDomainJSONRequestBody defines body for AddAppDomain for application/json ContentType.
+type AddAppDomainJSONRequestBody = DomainRequest
+
+// ChangeAppSSLJSONRequestBody defines body for ChangeAppSSL for application/json ContentType.
+type ChangeAppSSLJSONRequestBody = SSLRequest
 
 // AcceptInviteJSONRequestBody defines body for AcceptInvite for application/json ContentType.
 type AcceptInviteJSONRequestBody = AcceptInviteRequest

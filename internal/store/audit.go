@@ -124,3 +124,14 @@ func (db *DB) AuditActors(ctx context.Context) ([]string, error) {
 	err := db.R.SelectContext(ctx, &out, `SELECT DISTINCT actor_name FROM audit_log ORDER BY actor_name LIMIT 500`)
 	return out, err
 }
+
+// DomainsAddedSince returns the domains added to an app through Gokku after since, from the
+// domains:add audit entries (SSL-2).
+func (db *DB) DomainsAddedSince(ctx context.Context, app string, since Time) ([]string, error) {
+	out := []string{}
+	err := db.R.SelectContext(ctx, &out, `
+		SELECT DISTINCT json_extract(detail, '$.domain') FROM audit_log
+		WHERE action = 'domains:add' AND target_name = ? AND result = 'ok' AND ts > ?
+			AND json_extract(detail, '$.domain') IS NOT NULL`, app, since)
+	return out, err
+}

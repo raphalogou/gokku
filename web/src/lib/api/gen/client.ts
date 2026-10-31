@@ -15,6 +15,7 @@ import type {
   AcceptInviteRequest,
   AppConfig,
   AppDetail,
+  AppDomains,
   AppSummary,
   ApplyEnvRequest,
   AuditPage,
@@ -24,6 +25,7 @@ import type {
   CreateTokenRequest,
   Credentials,
   DeleteProjectParams,
+  DomainRequest,
   ExportAuditParams,
   GetAppLogsParams,
   Invite,
@@ -42,8 +44,11 @@ import type {
   ProjectEnvSaved,
   ProjectSummary,
   PutProjectEnvRequest,
+  RemoveAppDomainParams,
   RevealRequest,
   RevealedValues,
+  SSLRequest,
+  SSLStatus,
   ServerInfo,
   ServiceSummary,
   Session,
@@ -1364,6 +1369,165 @@ return apiFetch<RevealedValues>(getRevealProjectEnvUrl(slug),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(revealRequest)
+  }
+);}
+
+
+
+export const getGetAppDomainsUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/domains`
+}
+
+/**
+ * @summary The app's domains (DOM-1)
+ */
+export const getAppDomains = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<AppDomains> => {
+
+  return apiFetch<AppDomains>(getGetAppDomainsUrl(name),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getAddAppDomainUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/domains`
+}
+
+/**
+ * @summary Add a domain (DOM-1)
+ */
+export const addAppDomain = async (name: string,
+    domainRequest: DomainRequest, options?: Parameters<typeof apiFetch>[1]): Promise<AppDomains> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<AppDomains>(getAddAppDomainUrl(name),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(domainRequest)
+  }
+);}
+
+
+
+export const getRemoveAppDomainUrl = (name: string,
+    params: RemoveAppDomainParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/apps/${name}/domains?${stringifiedParams}` : `/api/v1/apps/${name}/domains`
+}
+
+/**
+ * @summary Remove a domain (DOM-1)
+ */
+export const removeAppDomain = async (name: string,
+    params: RemoveAppDomainParams, options?: Parameters<typeof apiFetch>[1]): Promise<AppDomains> => {
+
+  return apiFetch<AppDomains>(getRemoveAppDomainUrl(name,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export const getGetAppSSLUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/ssl`
+}
+
+/**
+ * @summary Let's Encrypt state of the app (SSL-1, SSL-2)
+ */
+export const getAppSSL = async (name: string, options?: Parameters<typeof apiFetch>[1]): Promise<SSLStatus> => {
+
+  return apiFetch<SSLStatus>(getGetAppSSLUrl(name),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export const getChangeAppSSLUrl = (name: string,) => {
+
+
+
+
+  return `/api/v1/apps/${name}/ssl`
+}
+
+/**
+ * @summary Enable, renew or disable a certificate as a job, or set the email or automatic renewal (SSL-1)
+ */
+export const changeAppSSL = async (name: string,
+    sSLRequest: SSLRequest, options?: Parameters<typeof apiFetch>[1]): Promise<SSLStatus | JobRef> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<SSLStatus | JobRef>(getChangeAppSSLUrl(name),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(sSLRequest)
   }
 );}
 

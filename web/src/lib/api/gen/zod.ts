@@ -958,6 +958,101 @@ export const RevealProjectEnvResponse = zod.object({
 
 
 /**
+ * @summary The app's domains (DOM-1)
+ */
+export const GetAppDomainsParams = zod.object({
+  "name": zod.string()
+})
+
+export const GetAppDomainsResponse = zod.object({
+  "domains": zod.array(zod.string()),
+  "dns_target": zod.string().describe('Where A records should point: GOKKU_DOKKU_HOST, or the request host (SSL-3)')
+})
+
+
+/**
+ * @summary Add a domain (DOM-1)
+ */
+export const AddAppDomainParams = zod.object({
+  "name": zod.string()
+})
+
+export const addAppDomainBodyDomainMax = 253;
+
+
+
+export const AddAppDomainBody = zod.object({
+  "domain": zod.string().max(addAppDomainBodyDomainMax)
+})
+
+export const AddAppDomainResponse = zod.object({
+  "domains": zod.array(zod.string()),
+  "dns_target": zod.string().describe('Where A records should point: GOKKU_DOKKU_HOST, or the request host (SSL-3)')
+})
+
+
+/**
+ * @summary Remove a domain (DOM-1)
+ */
+export const RemoveAppDomainParams = zod.object({
+  "name": zod.string()
+})
+
+export const RemoveAppDomainQueryParams = zod.object({
+  "domain": zod.string()
+})
+
+export const RemoveAppDomainResponse = zod.object({
+  "domains": zod.array(zod.string()),
+  "dns_target": zod.string().describe('Where A records should point: GOKKU_DOKKU_HOST, or the request host (SSL-3)')
+})
+
+
+/**
+ * @summary Let's Encrypt state of the app (SSL-1, SSL-2)
+ */
+export const GetAppSSLParams = zod.object({
+  "name": zod.string()
+})
+
+export const GetAppSSLResponse = zod.object({
+  "available": zod.boolean().describe('The letsencrypt plugin is installed'),
+  "active": zod.boolean(),
+  "expires_at": zod.iso.datetime({"offset":true}).nullish(),
+  "auto_renew": zod.boolean().describe('The plugin\'s renewal cron job is installed; it renews every app'),
+  "email": zod.string().nullish().describe('The app\'s contact email, else the global one'),
+  "uncovered": zod.array(zod.string()).describe('Domains added through Gokku after the certificate was issued (SSL-2)')
+})
+
+
+/**
+ * @summary Enable, renew or disable a certificate as a job, or set the email or automatic renewal (SSL-1)
+ */
+export const ChangeAppSSLParams = zod.object({
+  "name": zod.string()
+})
+
+export const changeAppSSLBodyEmailMax = 254;
+
+
+
+export const ChangeAppSSLBody = zod.object({
+  "action": zod.enum(['enable', 'renew', 'disable', 'set_email', 'set_auto_renew']),
+  "email": zod.string().max(changeAppSSLBodyEmailMax).optional(),
+  "auto_renew": zod.boolean().optional()
+})
+
+export const ChangeAppSSLResponse = zod.object({
+  "available": zod.boolean().describe('The letsencrypt plugin is installed'),
+  "active": zod.boolean(),
+  "expires_at": zod.iso.datetime({"offset":true}).nullish(),
+  "auto_renew": zod.boolean().describe('The plugin\'s renewal cron job is installed; it renews every app'),
+  "email": zod.string().nullish().describe('The app\'s contact email, else the global one'),
+  "uncovered": zod.array(zod.string()).describe('Domains added through Gokku after the certificate was issued (SSL-2)')
+})
+
+
+/**
  * @summary The last lines of the app's output (LOG-1)
  */
 export const GetAppLogsParams = zod.object({

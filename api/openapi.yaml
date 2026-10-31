@@ -740,6 +740,97 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
 
+  /apps/{name}/domains:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getAppDomains
+      tags: [apps]
+      summary: The app's domains (DOM-1)
+      responses:
+        "200":
+          description: Domains
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppDomains" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: addAppDomain
+      tags: [apps]
+      summary: Add a domain (DOM-1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DomainRequest" }
+      responses:
+        "201":
+          description: The domains after the change
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppDomains" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: removeAppDomain
+      tags: [apps]
+      summary: Remove a domain (DOM-1)
+      parameters:
+        - { name: domain, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The domains after the change
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppDomains" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /apps/{name}/ssl:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getAppSSL
+      tags: [apps]
+      summary: "Let's Encrypt state of the app (SSL-1, SSL-2)"
+      responses:
+        "200":
+          description: SSL state; available is false without the letsencrypt plugin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SSLStatus" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: changeAppSSL
+      tags: [apps]
+      summary: "Enable, renew or disable a certificate as a job, or set the email or automatic renewal (SSL-1)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SSLRequest" }
+      responses:
+        "200":
+          description: The setting was changed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SSLStatus" }
+        "202":
+          description: The certificate job was queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
   /apps/{name}/logs:
     parameters:
       - { name: name, in: path, required: true, schema: { type: string } }
@@ -952,6 +1043,8 @@ components:
         - too_many_streams
         - managed_variable
         - reserved_key
+        - domain_exists
+        - plugin_missing
         - internal
 
     Role:
@@ -1561,3 +1654,40 @@ components:
       type: object
       properties:
         restart: { type: boolean }
+
+    AppDomains:
+      type: object
+      required: [domains, dns_target]
+      properties:
+        domains:
+          type: array
+          items: { type: string }
+        dns_target: { type: string, description: "Where A records should point: GOKKU_DOKKU_HOST, or the request host (SSL-3)" }
+
+    DomainRequest:
+      type: object
+      required: [domain]
+      properties:
+        domain: { type: string, maxLength: 253 }
+
+    SSLStatus:
+      type: object
+      required: [available, active, auto_renew, uncovered]
+      properties:
+        available: { type: boolean, description: The letsencrypt plugin is installed }
+        active: { type: boolean }
+        expires_at: { type: string, format: date-time, nullable: true }
+        auto_renew: { type: boolean, description: "The plugin's renewal cron job is installed; it renews every app" }
+        email: { type: string, nullable: true, description: "The app's contact email, else the global one" }
+        uncovered:
+          type: array
+          items: { type: string }
+          description: Domains added through Gokku after the certificate was issued (SSL-2)
+
+    SSLRequest:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [enable, renew, disable, set_email, set_auto_renew] }
+        email: { type: string, maxLength: 254 }
+        auto_renew: { type: boolean }

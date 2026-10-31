@@ -2,7 +2,9 @@ import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import {
   getApp,
   getAppConfig,
+  getAppDomains,
   getAppLogs,
+  getAppSSL,
   getJob,
   getMe,
   getProject,
@@ -41,6 +43,8 @@ export const queryKeys = {
   appLogs: (name: string, params: GetAppLogsParams) => ["logs", name, params] as const,
   appConfig: (name: string) => ["apps", name, "config"] as const,
   projectEnv: (slug: string) => ["projects", slug, "env"] as const,
+  appDomains: (name: string) => ["apps", name, "domains"] as const,
+  appSSL: (name: string) => ["apps", name, "ssl"] as const,
   audit: () => ["audit"] as const,
   auditList: (params: ListAuditParams) => ["audit", params] as const,
 };
@@ -117,3 +121,12 @@ export const projectEnvQuery = (slug: string) =>
     queryKey: queryKeys.projectEnv(slug),
     queryFn: ({ signal }) => getProjectEnv(slug, { signal }),
   });
+
+export const appDomainsQuery = (name: string) =>
+  queryOptions({
+    queryKey: queryKeys.appDomains(name),
+    queryFn: ({ signal }) => getAppDomains(name, { signal }),
+  });
+
+export const appSSLQuery = (name: string) =>
+  queryOptions({ queryKey: queryKeys.appSSL(name), queryFn: ({ signal }) => getAppSSL(name, { signal }) });

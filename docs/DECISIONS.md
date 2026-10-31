@@ -191,3 +191,17 @@ One entry per decision: date, decision, reason, alternatives.
   plugin's default alias.
 - **Note:** the mockup's Project Settings says deleting a project means "shared variables stop being
   applied"; SPEC `PRJ-4` says the managed variables are removed from member apps, which wins.
+
+## 2026-10-31: Domains and SSL
+
+- **Decision:** `DELETE /apps/{name}/domains?domain=` removes one domain, keeping SPEC section 8's path.
+  `POST /apps/{name}/ssl` takes an `action`: `enable`, `renew` (`letsencrypt:enable --force`) and `disable`
+  run as jobs and answer 202; `set_email` (`letsencrypt:set <app> email`) and `set_auto_renew`
+  (`letsencrypt:cron-job --add|--remove`) answer 200 with the new state. Automatic renewal is the plugin's
+  one server-wide cron job, which the UI says. Global domains wait for the Settings screen (M6).
+- **Open question 2 (fallback, `TODO(spec-2)`):** the certificate's issue time is its expiry minus 90 days
+  plus the one hour Let's Encrypt backdates it; domains that the audit log shows were added through Gokku
+  after that, and are still on the app, are listed as `uncovered` until the next renewal. Domains added
+  outside Gokku are not seen.
+- **SSL-3:** the DNS reminder names `GOKKU_DOKKU_HOST`, or the host the browser used, as the A record
+  target; Gokku does not know the server's public address otherwise.

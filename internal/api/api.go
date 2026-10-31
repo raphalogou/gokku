@@ -147,6 +147,11 @@ func (a *API) register(r *router) {
 	r.Route(http.MethodGet, "/apps/{name}/config", authz.AppView, a.getAppConfig)
 	r.Route(http.MethodPatch, "/apps/{name}/config", authz.AppConfigWrite, a.updateAppConfig)
 	r.Route(http.MethodPost, "/apps/{name}/config/reveal", authz.AppSecretsReveal, a.revealAppConfig)
+	r.Route(http.MethodGet, "/apps/{name}/domains", authz.AppView, a.getAppDomains)
+	r.Route(http.MethodPost, "/apps/{name}/domains", authz.AppDomainsWrite, a.addAppDomain)
+	r.Route(http.MethodDelete, "/apps/{name}/domains", authz.AppDomainsWrite, a.removeAppDomain)
+	r.Route(http.MethodGet, "/apps/{name}/ssl", authz.AppView, a.getAppSSL)
+	r.Route(http.MethodPost, "/apps/{name}/ssl", authz.AppSSLWrite, a.changeAppSSL)
 	r.Route(http.MethodGet, "/apps/{name}/logs", authz.AppLogsRead, a.getAppLogs)
 	r.Route(http.MethodGet, "/apps/{name}/logs/stream", authz.AppLogsRead, a.streamAppLogs)
 
