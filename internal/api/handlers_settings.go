@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -43,13 +44,7 @@ func (a *API) settings(ctx context.Context) (Settings, error) {
 	if err != nil {
 		return out, err
 	}
-	out.ProtectedApps = slices.Sorted(func(yield func(string) bool) {
-		for name := range protected {
-			if !yield(name) {
-				return
-			}
-		}
-	})
+	out.ProtectedApps = nonNil(slices.Sorted(maps.Keys(protected)))
 	if a.snap.State().Server.Reachable {
 		domains, err := a.dokku.GlobalDomains(ctx)
 		if err != nil {

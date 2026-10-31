@@ -19,6 +19,9 @@ func TestSET1Settings(t *testing.T) {
 	var s Settings
 	res := admin.do(http.MethodGet, "/settings", nil)
 	expect(t, res, http.StatusOK)
+	if !strings.Contains(string(res.body), `"protected_apps":[]`) {
+		t.Errorf("an empty list must be [], not null: %s", res.body)
+	}
 	res.decode(t, &s)
 	if s.SessionLifetimeHours != 24 || s.MinPasswordLength != 12 || s.JobRetentionDays != 30 ||
 		len(s.ProtectedApps) != 0 || s.GlobalDomains == nil || !slices.Equal(*s.GlobalDomains, []string{"dokku-01.example.com"}) {
