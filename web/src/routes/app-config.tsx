@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, FileText, Plus, Trash2, Undo2 } from "lucide-react";
+import { FileText, Plus, Trash2, Undo2 } from "lucide-react";
 import { useId, useState } from "react";
 import { useNavigate } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { Card, CardHeader } from "~/components/app/card";
 import { SaveBar } from "~/components/app/save-bar";
 import { Skeleton } from "~/components/app/states";
+import { ValueField } from "~/components/app/value-field";
 import { Button } from "~/components/ui/button";
 import { Dialog, DialogActions } from "~/components/ui/dialog";
 import { Input, Textarea } from "~/components/ui/input";
@@ -133,6 +134,7 @@ export default function AppConfig({ params }: Route.ComponentProps) {
                 onChange={(value) => setValue(v.key, value)}
                 onToggleRemove={() => toggleRemove(v.key)}
                 onReveal={() => reveal.mutate(v.key)}
+                readHidden={async () => (await revealAppConfig(name, { keys: [v.key] })).values[v.key]}
                 onHide={() =>
                   setRevealed((prev) => {
                     const { [v.key]: _, ...rest } = prev;
@@ -147,11 +149,13 @@ export default function AppConfig({ params }: Route.ComponentProps) {
                 className="grid gap-2 px-5 py-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_44px] sm:items-center"
               >
                 <span className="font-mono font-medium break-all">{k}</span>
-                <Input
-                  aria-label={`${t.value} ${k}`}
+                <ValueField
+                  name={k}
                   value={edits[k] ?? ""}
-                  onChange={(e) => setValue(k, e.target.value)}
-                  className="font-mono"
+                  hidden={false}
+                  secret={false}
+                  readOnly={false}
+                  onChange={(value) => setValue(k, value)}
                 />
                 <Button
                   variant="ghost"
@@ -229,6 +233,7 @@ function VarRow({
   onToggleRemove,
   onReveal,
   onHide,
+  readHidden,
 }: {
   v: ConfigVar;
   projectName?: string;
@@ -241,6 +246,7 @@ function VarRow({
   onToggleRemove: () => void;
   onReveal: () => void;
   onHide: () => void;
+  readHidden: () => Promise<string | undefined>;
 }) {
   const t = strings.config;
   const managed = v.managed_by ?? null;
@@ -272,26 +278,19 @@ function VarRow({
         {removed ? <span className="block text-[13px] text-failed-fg">{t.removed}</span> : null}
       </div>
       <div className="flex items-center gap-2">
-        <Input
-          aria-label={`${t.value} ${v.key}`}
-          aria-describedby={source ? hintId : undefined}
-          type={v.masked && revealed === undefined && value === undefined ? "password" : "text"}
-          placeholder={v.masked && revealed === undefined ? t.masked : undefined}
+        <ValueField
+          name={v.key}
           value={shown}
+          hidden={v.masked && revealed === undefined && value === undefined}
+          secret={v.masked && value === undefined}
           readOnly={!editable}
-          onChange={(e) => onChange(e.target.value)}
-          className="font-mono"
+          placeholder={v.masked && revealed === undefined ? t.masked : undefined}
+          describedBy={source ? hintId : undefined}
+          onChange={onChange}
+          onReveal={canReveal ? onReveal : undefined}
+          onHide={onHide}
+          readHidden={canReveal ? readHidden : undefined}
         />
-        {v.masked && canReveal && value === undefined ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={revealed === undefined ? t.reveal(v.key) : t.hide(v.key)}
-            onClick={revealed === undefined ? onReveal : onHide}
-          >
-            {revealed === undefined ? <Eye aria-hidden /> : <EyeOff aria-hidden />}
-          </Button>
-        ) : null}
         {managed ? (
           <span className="rounded-full bg-chip px-2 py-0.5 text-[13px] font-semibold text-muted">
             {t.managed}

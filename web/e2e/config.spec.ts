@@ -14,9 +14,21 @@ test("edit app config, with masked and managed variables (CFG-1 to CFG-4)", asyn
   await expect(page.getByLabel("Value DATABASE_URL")).toHaveAttribute("readonly", "");
   await expect(page.getByLabel("Value SESSION_SECRET")).toHaveValue("");
 
-  // CFG-2: reveal a secret.
+  // Copy works for plain values, and for hidden ones without showing them (CFG-2).
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  const clipboard = () => page.evaluate(() => navigator.clipboard.readText());
+  await page.getByRole("button", { name: "Copy NODE_ENV" }).click();
+  await expect.poll(clipboard).toBe("production");
+  await page.getByRole("button", { name: "Copy SESSION_SECRET" }).click();
+  await expect.poll(clipboard).toBe("fake-session-secret-0123456789");
+  await expect(page.getByLabel("Value SESSION_SECRET")).toHaveValue("");
+
+  // CFG-2: reveal a secret, then hide it again.
   await page.getByRole("button", { name: "Show SESSION_SECRET" }).click();
   await expect(page.getByLabel("Value SESSION_SECRET")).toHaveValue("fake-session-secret-0123456789");
+  await page.getByRole("button", { name: "Hide SESSION_SECRET" }).click();
+  await expect(page.getByLabel("Value SESSION_SECRET")).toHaveAttribute("type", "password");
+  await page.getByRole("button", { name: "Show SESSION_SECRET" }).click();
 
   await page.getByLabel("Value NODE_ENV").fill("staging");
   await page.getByLabel("New key").fill("FEATURE_FLAG");
@@ -88,6 +100,7 @@ test("an operator can edit app config but not shared variables", async ({ page }
   await signIn(page, "olga", "olga's long password");
   await page.goto("/apps/storefront/config");
   await expect(page.getByRole("button", { name: "Edit as .env" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy DATABASE_URL" })).toBeVisible();
   await page.goto("/projects/storefront/config");
   await expect(page.getByText("Only admins can change shared variables.")).toBeVisible();
   await expect(page.getByLabel("New key")).toHaveCount(0);

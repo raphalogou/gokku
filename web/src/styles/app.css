@@ -53,9 +53,12 @@ html {
   font-size: 15px;
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* In the base layer, so components can move or drop the ring with utilities. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
 /* Base UI injects this rule in a <style> element, which the CSP blocks; see root.tsx. */

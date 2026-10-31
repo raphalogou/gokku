@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Eye, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import { Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
 import { useId, useState } from "react";
 import { useNavigate } from "react-router";
 import { Banner } from "~/components/app/banner";
@@ -7,6 +7,7 @@ import { Card, CardHeader } from "~/components/app/card";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
 import { SaveBar } from "~/components/app/save-bar";
 import { Skeleton } from "~/components/app/states";
+import { ValueField } from "~/components/app/value-field";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { notify } from "~/components/ui/toast";
@@ -158,33 +159,29 @@ export default function ProjectConfig({ params }: Route.ComponentProps) {
                       {v.key}
                     </TD>
                     <TD>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          aria-label={`${t.value} ${v.key}`}
-                          type={
-                            v.secret && !(v.key in edits) && revealed[v.key] === undefined
-                              ? "password"
-                              : "text"
-                          }
-                          placeholder={
-                            v.secret && revealed[v.key] === undefined ? strings.config.masked : undefined
-                          }
-                          value={shown}
-                          readOnly={!canWrite || isRemoved}
-                          onChange={(e) => setEdits((prev) => ({ ...prev, [v.key]: e.target.value }))}
-                          className="font-mono"
-                        />
-                        {v.secret && canReveal && revealed[v.key] === undefined && !(v.key in edits) ? (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={t.reveal(v.key)}
-                            onClick={() => reveal.mutate(v.key)}
-                          >
-                            <Eye aria-hidden />
-                          </Button>
-                        ) : null}
-                      </div>
+                      <ValueField
+                        name={v.key}
+                        value={shown}
+                        hidden={v.secret && !(v.key in edits) && revealed[v.key] === undefined}
+                        secret={v.secret && !(v.key in edits)}
+                        readOnly={!canWrite || isRemoved}
+                        placeholder={
+                          v.secret && revealed[v.key] === undefined ? strings.config.masked : undefined
+                        }
+                        onChange={(value) => setEdits((prev) => ({ ...prev, [v.key]: value }))}
+                        onReveal={canReveal ? () => reveal.mutate(v.key) : undefined}
+                        onHide={() =>
+                          setRevealed((prev) => {
+                            const { [v.key]: _, ...rest } = prev;
+                            return rest;
+                          })
+                        }
+                        readHidden={
+                          canReveal
+                            ? async () => (await revealProjectEnv(slug, { keys: [v.key] })).values[v.key]
+                            : undefined
+                        }
+                      />
                     </TD>
                     <TD>
                       <VarStatus v={v} unsaved={changedKeys.includes(v.key)} />
@@ -215,16 +212,15 @@ export default function ProjectConfig({ params }: Route.ComponentProps) {
                 <TR key={d.key}>
                   <TD className="font-mono font-medium">{d.key}</TD>
                   <TD>
-                    <Input
-                      aria-label={`${t.value} ${d.key}`}
-                      type={d.secret ? "password" : "text"}
+                    <ValueField
+                      name={d.key}
                       value={d.value ?? ""}
-                      onChange={(e) =>
-                        setAdded((prev) =>
-                          prev.map((x) => (x.key === d.key ? { ...x, value: e.target.value } : x)),
-                        )
+                      hidden={false}
+                      secret={false}
+                      readOnly={false}
+                      onChange={(value) =>
+                        setAdded((prev) => prev.map((x) => (x.key === d.key ? { ...x, value } : x)))
                       }
-                      className="font-mono"
                     />
                   </TD>
                   <TD className="text-sm font-semibold text-deploying-fg">{t.pendingSave}</TD>
