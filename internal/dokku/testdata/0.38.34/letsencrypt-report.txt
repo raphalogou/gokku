@@ -1,0 +1,19 @@
+=====> blog-api letsencrypt information
+       Letsencrypt active:            true                     
+       Letsencrypt autorenew:         true                     
+       Letsencrypt computed dns provider:                          
+       Letsencrypt global dns provider:                          
+       Letsencrypt dns provider:                               
+       Letsencrypt computed email:    ops@example.com          
+       Letsencrypt global email:      ops@example.com          
+       Letsencrypt email:                                      
+       Letsencrypt expiration:        1798365600               
+       Letsencrypt computed graceperiod: 2592000                  
+       Letsencrypt global graceperiod:                          
+       Letsencrypt graceperiod:                                
+       Letsencrypt computed lego args:                          
+       Letsencrypt global lego args:                           
+       Letsencrypt lego args:                                  
+       Letsencrypt computed server:   https://acme-v02.api.letsencrypt.org/directory
+       Letsencrypt global server:                              
+       Letsencrypt server:                                     

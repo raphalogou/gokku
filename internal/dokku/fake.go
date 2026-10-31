@@ -26,12 +26,14 @@ type FakeRunner struct {
 	// FailRebuild lists apps whose ps:rebuild fails, as a broken build would.
 	FailRebuild map[string]bool
 
-	mu       sync.Mutex
-	version  string
-	plugins  []Plugin
-	apps     map[string]*fakeApp
-	services map[string]*fakeService // key type/name
-	calls    []string
+	mu          sync.Mutex
+	autoRenew   bool   // letsencrypt cron job
+	globalEmail string // letsencrypt global email
+	version     string
+	plugins     []Plugin
+	apps        map[string]*fakeApp
+	services    map[string]*fakeService // key type/name
+	calls       []string
 }
 
 type fakeApp struct {
@@ -49,6 +51,7 @@ type fakeApp struct {
 	sourceImage  string
 	builder      string
 	config       map[string]string
+	ssl          fakeSSL
 }
 
 type fakeService struct {
@@ -115,6 +118,9 @@ func NewFakeRunner(now time.Time) *FakeRunner {
 		f.services[s.typ+"/"+s.name] = &s
 	}
 	f.seedConfig()
+	f.autoRenew, f.globalEmail = true, "ops@example.com"
+	f.apps["blog-api"].ssl = fakeSSL{active: true, expires: ago(-61 * 24 * time.Hour)}
+	f.apps["storefront"].ssl = fakeSSL{active: true, expires: ago(-45 * 24 * time.Hour)}
 	return f
 }
 
@@ -227,6 +233,9 @@ func (f *FakeRunner) command(args []string, stdin io.Reader) script {
 		return f.logs(args[1:])
 	}
 	if sc, ok := f.configCommand(args, stdin); ok {
+		return sc
+	}
+	if sc, ok := f.sslCommand(args); ok {
 		return sc
 	}
 	return failScript(fmt.Sprintf("fake runner: %s is not implemented", strings.Join(args, " ")))
@@ -385,4 +394,11 @@ func unix(t time.Time) string {
 		return ""
 	}
 	return strconv.FormatInt(t.Unix(), 10)
+}
+
+// RemovePlugin uninstalls a plugin from the fake server, for tests of missing features.
+func (f *FakeRunner) RemovePlugin(name string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.plugins = slices.DeleteFunc(f.plugins, func(p Plugin) bool { return p.Name == name })
 }

@@ -24,3 +24,4 @@ Replace a rendered file with output recorded on a real server when one is availa
 
 | logs.txt | `dokku logs blog-api --num 3` | `plugins/scheduler-docker-local/scheduler-logs`: `docker logs -t --tail N` per container, in turn, each line rewritten by `sed` to `<color><timestamp> app[<dyno>]:<reset> <text>` |
 | config-export.json | `dokku config:export --format json blog-api` | `plugins/config/environment.go` `JSONString`: `json.Marshal` of the app's map, so keys are sorted and values escaped |
+| letsencrypt-report.txt | `dokku letsencrypt:report blog-api` (plugin 0.25.2) | `command-functions` `cmd-letsencrypt-report-single`: `dokku_log_info2_quiet` header, then `printf "%-30s %-25s"` per key, keys capitalized with `${key^}` |
