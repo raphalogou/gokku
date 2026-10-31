@@ -23,6 +23,7 @@ type AppReport struct {
 	Deployed   bool
 	Running    string // "true", "false" or "mixed"
 	Restore    bool   // false after ps:stop
+	CanScale   bool   // false when app.json sets the formation
 	Containers []Container
 	// domains:report
 	DomainsEnabled bool
@@ -92,6 +93,7 @@ func mergeAppReports(apps, ps, domains, git, builder map[string]Fields) map[stri
 			r.Deployed = p.bool("deployed")
 			r.Running = p["running"]
 			r.Restore = p.bool("restore")
+			r.CanScale = p.bool("ps-can-scale")
 			r.Containers = parseContainers(p)
 		}
 		if d := domains[name]; d != nil {

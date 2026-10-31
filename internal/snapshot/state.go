@@ -44,6 +44,7 @@ type App struct {
 	Status       Status
 	Deployed     bool
 	Locked       bool
+	CanScale     bool
 	CreatedAt    time.Time
 	DeploySource string
 	Revision     string // git sha of the deployed code, or empty
@@ -148,6 +149,7 @@ func build(reports map[string]*dokku.AppReport, services []dokku.Service, jobs m
 			Status:       deriveStatus(r, jobs[r.Name]),
 			Deployed:     r.Deployed,
 			Locked:       r.Locked,
+			CanScale:     r.CanScale,
 			CreatedAt:    r.CreatedAt,
 			DeploySource: r.DeploySource,
 			Revision:     r.GitSHA,
