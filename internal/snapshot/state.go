@@ -48,6 +48,7 @@ type App struct {
 	CreatedAt    time.Time
 	DeploySource string
 	Revision     string // git sha of the deployed code, or empty
+	DeployBranch string
 	SourceImage  string
 	DeployedAt   time.Time // when the deploy branch last moved; zero if never
 	Builder      string
@@ -153,6 +154,7 @@ func build(reports map[string]*dokku.AppReport, services []dokku.Service, jobs m
 			CreatedAt:    r.CreatedAt,
 			DeploySource: r.DeploySource,
 			Revision:     r.GitSHA,
+			DeployBranch: r.DeployBranch,
 			SourceImage:  r.SourceImage,
 			DeployedAt:   r.GitUpdatedAt,
 			Builder:      r.Builder,

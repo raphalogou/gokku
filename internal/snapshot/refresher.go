@@ -30,6 +30,9 @@ type Options struct {
 	Hub      *events.Hub  // receives the diff of each refresh; nil for none
 	Log      *slog.Logger
 	Now      func() time.Time
+	// OnRevision is called when an app's deployed revision changed between two successful
+	// refreshes, for example after a git push (DEP-3).
+	OnRevision func(ctx context.Context, app, from, to string)
 }
 
 // Refresher rebuilds the snapshot from bulk Dokku reports and publishes what changed.
@@ -129,7 +132,22 @@ func (r *Refresher) refresh(ctx context.Context, probe bool) error {
 	}
 	r.state.Store(next)
 	r.publish(old, next)
+	if err == nil && old.Server.Reachable {
+		r.revisions(ctx, old, next)
+	}
 	return err
+}
+
+// revisions reports the apps whose deployed revision changed.
+func (r *Refresher) revisions(ctx context.Context, old, next *State) {
+	if r.opts.OnRevision == nil {
+		return
+	}
+	for _, a := range next.Apps {
+		if prev, ok := old.App(a.Name); ok && prev.Revision != "" && a.Revision != "" && prev.Revision != a.Revision {
+			r.opts.OnRevision(ctx, a.Name, prev.Revision, a.Revision)
+		}
+	}
 }
 
 // load fills next from Dokku. On error, next keeps the last known apps and services.

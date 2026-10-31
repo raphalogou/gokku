@@ -31,6 +31,7 @@ type AppReport struct {
 	// git:report
 	GitSHA       string
 	GitUpdatedAt time.Time // when the deploy branch last moved
+	DeployBranch string
 	SourceImage  string
 	// builder:report
 	Builder string // the selected builder, else the detected one
@@ -102,6 +103,7 @@ func mergeAppReports(apps, ps, domains, git, builder map[string]Fields) map[stri
 		}
 		if g := git[name]; g != nil {
 			r.GitSHA = g["git-sha"]
+			r.DeployBranch = g["git-computed-deploy-branch"]
 			r.GitUpdatedAt = unixTime(g["git-last-updated-at"])
 			r.SourceImage = g["git-source-image"]
 		}

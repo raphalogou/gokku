@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -204,5 +205,30 @@ func TestRunStopsWithContext(t *testing.T) {
 	}
 	if !r.State().Server.Reachable {
 		t.Error("Run did not refresh")
+	}
+}
+
+// DEP-3: a changed revision between two refreshes is reported once.
+func TestOnRevision(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	fake := dokku.NewFakeRunner(time.Now())
+	client := dokku.NewClient(fake, log)
+	var seen []string
+	r := New(Options{Client: client, Log: log, OnRevision: func(_ context.Context, app, from, to string) {
+		seen = append(seen, app+":"+from[:7]+">"+to[:7])
+	}})
+	if err := r.Refresh(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.DeployImage(t.Context(), "docs-site", "nginx:1.28-alpine", func(dokku.Line) {}); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err := r.Refresh(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(seen) != 1 || !strings.HasPrefix(seen[0], "docs-site:c40e1aa>") {
+		t.Errorf("seen = %v", seen)
 	}
 }

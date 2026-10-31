@@ -244,6 +244,9 @@ func (f *FakeRunner) command(args []string, stdin io.Reader) script {
 	if sc, ok := f.manageCommand(args); ok {
 		return sc
 	}
+	if sc, ok := f.deployCommand(args); ok {
+		return sc
+	}
 	return failScript(fmt.Sprintf("fake runner: %s is not implemented", strings.Join(args, " ")))
 }
 
