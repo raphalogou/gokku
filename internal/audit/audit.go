@@ -100,6 +100,10 @@ func (r *Recorder) RecordSystem(ctx context.Context, e Entry) {
 // secretKey matches keys whose values must never be stored (the CFG-1 pattern).
 var secretKey = regexp.MustCompile(`(?i)(secret|token|password|passwd|key|dsn|url|credential)`)
 
+// LooksSecret reports whether a config or detail key names a secret, so its value is
+// masked (CFG-1) or redacted (SEC-5).
+func LooksSecret(key string) bool { return secretKey.MatchString(key) }
+
 // Redact returns a copy of detail with values under secret-looking keys replaced.
 func Redact(detail map[string]any) map[string]any {
 	if detail == nil {
