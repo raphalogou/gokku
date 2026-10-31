@@ -1,6 +1,9 @@
 package dokku
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // redacted replaces secret argument values in logs, audit details and errors (CMD-3).
 const redacted = "[redacted]"
@@ -9,6 +12,7 @@ const redacted = "[redacted]"
 type cmd struct {
 	args   []string
 	secret []bool
+	hidden []string // secret values passed outside the arguments
 }
 
 func newCmd(args ...string) cmd {
@@ -19,6 +23,13 @@ func newCmd(args ...string) cmd {
 func (c cmd) secretArg(v string) cmd {
 	c.args = append(c.args, v)
 	c.secret = append(c.secret, true)
+	return c
+}
+
+// secretValue records a value that is not an argument, for example one sent on stdin, so
+// it is scrubbed from the command's output and errors.
+func (c cmd) secretValue(v string) cmd {
+	c.hidden = append(slices.Clone(c.hidden), v)
 	return c
 }
 
@@ -43,13 +54,24 @@ func (c cmd) secrets() []string {
 			out = append(out, a)
 		}
 	}
+	for _, v := range c.hidden {
+		if v != "" {
+			out = append(out, v)
+		}
+	}
 	return out
 }
+
+// minScrubLength is the shortest secret value scrubbed from output; replacing shorter ones
+// such as "1" would mangle unrelated text.
+const minScrubLength = 4
 
 // scrub removes every secret value of c from s.
 func (c cmd) scrub(s string) string {
 	for _, v := range c.secrets() {
-		s = strings.ReplaceAll(s, v, redacted)
+		if len(v) >= minScrubLength {
+			s = strings.ReplaceAll(s, v, redacted)
+		}
 	}
 	return s
 }

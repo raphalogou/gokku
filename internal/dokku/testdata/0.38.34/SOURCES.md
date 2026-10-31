@@ -23,3 +23,4 @@ The docs show no sample for these, so they are rendered with the formatting code
 Replace a rendered file with output recorded on a real server when one is available; the tests must keep passing.
 
 | logs.txt | `dokku logs blog-api --num 3` | `plugins/scheduler-docker-local/scheduler-logs`: `docker logs -t --tail N` per container, in turn, each line rewritten by `sed` to `<color><timestamp> app[<dyno>]:<reset> <text>` |
+| config-export.json | `dokku config:export --format json blog-api` | `plugins/config/environment.go` `JSONString`: `json.Marshal` of the app's map, so keys are sorted and values escaped |

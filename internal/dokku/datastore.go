@@ -55,3 +55,14 @@ func parseServices(out, typ string) ([]Service, error) {
 	slices.SortFunc(services, func(a, b Service) int { return strings.Compare(a.Name, b.Name) })
 	return services, nil
 }
+
+// linkEnvVars is the config key each datastore plugin sets on an app it links to: its
+// PLUGIN_DEFAULT_ALIAS plus _URL. The plugins also set DOKKU_<TYPE>_<COLOR>_URL.
+var linkEnvVars = map[string]string{
+	"postgres": "DATABASE_URL", "mysql": "DATABASE_URL", "mariadb": "DATABASE_URL",
+	"mongo": "MONGO_URL", "redis": "REDIS_URL", "rabbitmq": "RABBITMQ_URL", "memcached": "MEMCACHED_URL",
+	"elasticsearch": "ELASTICSEARCH_URL", "clickhouse": "CLICKHOUSE_URL", "couchdb": "COUCHDB_URL",
+}
+
+// LinkEnvVar returns the config key a datastore sets when linked, such as DATABASE_URL.
+func LinkEnvVar(typ string) string { return linkEnvVars[typ] }

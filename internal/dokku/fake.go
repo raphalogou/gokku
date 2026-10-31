@@ -48,6 +48,7 @@ type fakeApp struct {
 	updatedAt    time.Time
 	sourceImage  string
 	builder      string
+	config       map[string]string
 }
 
 type fakeService struct {
@@ -113,6 +114,7 @@ func NewFakeRunner(now time.Time) *FakeRunner {
 	} {
 		f.services[s.typ+"/"+s.name] = &s
 	}
+	f.seedConfig()
 	return f
 }
 
@@ -133,7 +135,7 @@ func (f *FakeRunner) Run(ctx context.Context, args ...string) (Result, error) {
 	if err := ctx.Err(); err != nil {
 		return Result{}, err
 	}
-	sc := f.command(args)
+	sc := f.command(args, nil)
 	var stdout, stderr strings.Builder
 	for _, l := range sc.lines {
 		b := &stdout
@@ -147,11 +149,11 @@ func (f *FakeRunner) Run(ctx context.Context, args ...string) (Result, error) {
 
 // Stream implements Runner. Lines are emitted Delay apart; `logs --tail` keeps emitting
 // until ctx ends.
-func (f *FakeRunner) Stream(ctx context.Context, args []string, _ io.Reader, onLine func(Line)) error {
+func (f *FakeRunner) Stream(ctx context.Context, args []string, stdin io.Reader, onLine func(Line)) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	sc := f.command(args)
+	sc := f.command(args, stdin)
 	for _, l := range sc.lines {
 		if err := f.wait(ctx); err != nil {
 			return err
@@ -202,7 +204,7 @@ func failScript(msg string) script {
 }
 
 // command answers one command, changing the state for lifecycle commands.
-func (f *FakeRunner) command(args []string) script {
+func (f *FakeRunner) command(args []string, stdin io.Reader) script {
 	if f.FailFile != "" {
 		if msg, err := os.ReadFile(f.FailFile); err == nil {
 			return script{lines: []Line{{Stream: "stderr",
@@ -223,6 +225,9 @@ func (f *FakeRunner) command(args []string) script {
 	}
 	if args[0] == "logs" && len(args) >= 2 {
 		return f.logs(args[1:])
+	}
+	if sc, ok := f.configCommand(args, stdin); ok {
+		return sc
 	}
 	return failScript(fmt.Sprintf("fake runner: %s is not implemented", strings.Join(args, " ")))
 }
@@ -353,7 +358,7 @@ func (f *FakeRunner) serviceInfo(typ string) string {
 		}
 		writeSection(&b, s.name, s.typ, [][2]string{
 			{"Config dir", fmt.Sprintf("/var/lib/dokku/services/%s/%s/config", s.typ, s.name)},
-			{"Dsn", fmt.Sprintf("%s://%s:fake-password@dokku-%s-%s:5432/%s", s.typ, s.typ, s.typ, s.name, strings.ReplaceAll(s.name, "-", "_"))},
+			{"Dsn", fakeDSN(s)},
 			{"Links", strings.Join(s.links, ",")},
 			{"Service", s.name},
 			{"Status", s.status},
