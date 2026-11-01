@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { data, useNavigate, useParams, useSearchParams } from "react-router";
 import { Banner } from "~/components/app/banner";
+import { DatastoreIcon } from "~/components/app/datastore-icon";
 import { Button } from "~/components/ui/button";
 import { Dialog, DialogActions } from "~/components/ui/dialog";
 import { Field } from "~/components/ui/field";
@@ -78,7 +79,11 @@ export default function NewService() {
           <Select
             value={chosenType}
             onValueChange={setType}
-            options={types.map((ty) => ({ value: ty, label: datastoreName(ty) }))}
+            options={types.map((ty) => ({
+              value: ty,
+              label: datastoreName(ty),
+              icon: <DatastoreIcon type={ty} className="size-[18px]" />,
+            }))}
           />
         </Field>
         <Field label={t.name} hint={t.nameHint} error={errors.name}>

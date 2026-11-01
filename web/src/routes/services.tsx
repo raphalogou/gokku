@@ -5,6 +5,7 @@ import { Link, Outlet } from "react-router";
 import { Card, CardHeader } from "~/components/app/card";
 import { ChipList } from "~/components/app/chip";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
+import { DatastoreIcon, DatastoreType } from "~/components/app/datastore-icon";
 import { PageHeader } from "~/components/app/page-header";
 import { EmptyState, Skeleton } from "~/components/app/states";
 import { StatusPill } from "~/components/app/status-pill";
@@ -45,19 +46,20 @@ export default function Services() {
     .map((p) => datastoreName(p.name));
   const noPlugins = !!server?.reachable && server.datastores.length === 0;
 
-  const chip = (value: string | null, label: string, count: number) => (
+  const chip = (value: string | null, label: string, count: number, icon?: string) => (
     <button
       key={value ?? "all"}
       type="button"
       aria-pressed={type === value}
       onClick={() => setType(value)}
       className={cn(
-        "min-h-11 cursor-pointer rounded-full border px-4 text-sm font-semibold",
+        "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm font-semibold",
         type === value
           ? "border-accent bg-nav-active text-accent"
           : "border-input-border bg-surface text-ink",
       )}
     >
+      {icon ? <DatastoreIcon type={icon} /> : null}
       {label} {count}
     </button>
   );
@@ -84,7 +86,7 @@ export default function Services() {
         <fieldset className="mb-4 flex flex-wrap gap-2">
           <legend className="sr-only">{t.filterType}</legend>
           {chip(null, t.all, list.length)}
-          {types.map((ty) => chip(ty, datastoreName(ty), list.filter((s) => s.type === ty).length))}
+          {types.map((ty) => chip(ty, datastoreName(ty), list.filter((s) => s.type === ty).length, ty))}
         </fieldset>
       ) : null}
 
@@ -168,7 +170,7 @@ function ServicesTable({ services }: { services: ServiceSummary[] }) {
               <StatusPill kind={serviceStatusKind[s.status]} label={strings.serviceStatus[s.status]} />
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted">
-              <span>{datastoreName(s.type)}</span>
+              <DatastoreType type={s.type} />
               <ServiceProject s={s} />
             </div>
             <ChipList items={s.links} empty={t.none} />
@@ -193,7 +195,9 @@ function ServicesTable({ services }: { services: ServiceSummary[] }) {
                   </Link>
                   <span className="block font-mono text-[12px] text-muted">{s.version}</span>
                 </TD>
-                <TD>{datastoreName(s.type)}</TD>
+                <TD>
+                  <DatastoreType type={s.type} />
+                </TD>
                 <TD>
                   <StatusPill kind={serviceStatusKind[s.status]} label={strings.serviceStatus[s.status]} />
                 </TD>

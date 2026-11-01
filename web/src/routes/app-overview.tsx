@@ -2,10 +2,11 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Card, CardBody, CardHeader } from "~/components/app/card";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
+import { DatastoreType } from "~/components/app/datastore-icon";
 import { StatusPill } from "~/components/app/status-pill";
 import { dateTime, timeAgo } from "~/lib/format";
 import { appQuery } from "~/lib/queries";
-import { datastoreName, shortSha } from "~/lib/status";
+import { shortSha } from "~/lib/status";
 import { strings } from "~/lib/strings";
 import type { Route } from "./+types/app-overview";
 
@@ -122,7 +123,7 @@ export default function AppOverview({ params }: Route.ComponentProps) {
             {app.services.map((s) => (
               <li key={`${s.type}/${s.name}`} className="flex min-h-[52px] items-center gap-3 px-5 py-2">
                 <span className="font-semibold">{s.name}</span>
-                <span className="text-sm text-muted">{datastoreName(s.type)}</span>
+                <DatastoreType type={s.type} className="text-sm text-muted" />
                 <span className="ml-auto text-sm font-semibold text-running-fg">{t.linked}</span>
               </li>
             ))}

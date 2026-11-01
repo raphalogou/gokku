@@ -4,6 +4,7 @@ import { Link, Outlet } from "react-router";
 import { Card, CardHeader } from "~/components/app/card";
 import { ChipList } from "~/components/app/chip";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
+import { DatastoreType } from "~/components/app/datastore-icon";
 import { useProjectContext, useRemoveMember } from "~/components/app/project-members";
 import { RowMenu } from "~/components/app/row-menu";
 import { EmptyState } from "~/components/app/states";
@@ -12,7 +13,7 @@ import { Button, buttonVariants } from "~/components/ui/button";
 import { MenuItem } from "~/components/ui/menu";
 import { useCan } from "~/hooks/use-can";
 import { projectQuery } from "~/lib/queries";
-import { datastoreName, serviceStatusKind } from "~/lib/status";
+import { serviceStatusKind } from "~/lib/status";
 import { strings } from "~/lib/strings";
 import type { Route } from "./+types/project-services";
 
@@ -69,7 +70,9 @@ export default function ProjectServices({ params }: Route.ComponentProps) {
                       {s.name}
                     </Link>
                   </TD>
-                  <TD>{datastoreName(s.type)}</TD>
+                  <TD>
+                    <DatastoreType type={s.type} />
+                  </TD>
                   <TD>
                     <StatusPill kind={serviceStatusKind[s.status]} label={strings.serviceStatus[s.status]} />
                   </TD>

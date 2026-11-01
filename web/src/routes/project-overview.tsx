@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { Card, CardHeader } from "~/components/app/card";
 import { Chip, ChipList } from "~/components/app/chip";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
+import { DatastoreType } from "~/components/app/datastore-icon";
 import { useProjectContext } from "~/components/app/project-members";
 import { EmptyState } from "~/components/app/states";
 import { StatusPill } from "~/components/app/status-pill";
@@ -11,7 +12,7 @@ import { Button } from "~/components/ui/button";
 import type { ActivityEntry } from "~/lib/api/gen/model";
 import { dateTime, timeAgo } from "~/lib/format";
 import { projectQuery } from "~/lib/queries";
-import { datastoreName, serviceStatusKind } from "~/lib/status";
+import { serviceStatusKind } from "~/lib/status";
 import { strings } from "~/lib/strings";
 import type { Route } from "./+types/project-overview";
 
@@ -113,7 +114,7 @@ export default function ProjectOverview({ params }: Route.ComponentProps) {
                   <TR key={`${s.type}/${s.name}`}>
                     <TD>
                       <span className="font-semibold">{s.name}</span>
-                      <span className="ml-2 text-sm text-muted">{datastoreName(s.type)}</span>
+                      <DatastoreType type={s.type} className="ml-2 text-sm text-muted" />
                     </TD>
                     <TD>
                       <StatusPill

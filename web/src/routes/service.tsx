@@ -6,6 +6,7 @@ import { Banner } from "~/components/app/banner";
 import { Breadcrumbs } from "~/components/app/breadcrumbs";
 import { Card, CardBody, CardHeader } from "~/components/app/card";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
+import { DatastoreIcon, DatastoreType } from "~/components/app/datastore-icon";
 import { EmptyState } from "~/components/app/states";
 import { StatusPill } from "~/components/app/status-pill";
 import { TypedConfirmDialog } from "~/components/app/typed-confirm-dialog";
@@ -75,7 +76,10 @@ export default function Service({ params }: Route.ComponentProps) {
               </Link>
             ) : null}
           </div>
-          <p className="mt-1 text-[15px] text-muted">{t.subtitle(typeName)}</p>
+          <p className="mt-1 flex items-center gap-2 text-[15px] text-muted">
+            <DatastoreIcon type={svc.type} className="size-[18px]" />
+            {t.subtitle(typeName)}
+          </p>
         </div>
         {canOperate ? <ServiceActions svc={svc} /> : null}
       </header>
@@ -184,7 +188,9 @@ function Details({ svc }: { svc: ServiceDetail }) {
       <CardHeader title={t.details} />
       <CardBody>
         <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Item label={t.type}>{datastoreName(svc.type)}</Item>
+          <Item label={t.type}>
+            <DatastoreType type={svc.type} />
+          </Item>
           <Item label={t.status}>{strings.serviceStatus[svc.status]}</Item>
           <Item label={t.project}>{svc.project?.name ?? strings.apps.unassigned}</Item>
           <Item label={t.version} mono>

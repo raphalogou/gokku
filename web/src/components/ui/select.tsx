@@ -1,8 +1,10 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { Check, ChevronDown } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "~/lib/utils";
 
-type Option<T extends string> = { value: T; label: string; hint?: string };
+/** An option; icon is decorative and shown before the label, also in the closed field. */
+type Option<T extends string> = { value: T; label: string; hint?: string; icon?: ReactNode };
 
 type SelectProps<T extends string> = {
   value: T;
@@ -31,7 +33,17 @@ export function Select<T extends string>({
           className,
         )}
       >
-        <BaseSelect.Value />
+        <BaseSelect.Value>
+          {(v: T | null) => {
+            const o = options.find((x) => x.value === v);
+            return o ? (
+              <span className="flex min-w-0 items-center gap-2">
+                {o.icon}
+                <span className="truncate">{o.label}</span>
+              </span>
+            ) : null;
+          }}
+        </BaseSelect.Value>
         <BaseSelect.Icon>
           <ChevronDown className="size-[18px] text-muted" aria-hidden />
         </BaseSelect.Icon>
@@ -51,6 +63,7 @@ export function Select<T extends string>({
                       <Check className="size-[18px] text-accent" aria-hidden />
                     </BaseSelect.ItemIndicator>
                   </span>
+                  {o.icon ? <span className="mt-0.5 flex shrink-0 text-muted">{o.icon}</span> : null}
                   <span className="flex flex-col">
                     <BaseSelect.ItemText>{o.label}</BaseSelect.ItemText>
                     {o.hint ? <span className="text-[13px] text-muted">{o.hint}</span> : null}
