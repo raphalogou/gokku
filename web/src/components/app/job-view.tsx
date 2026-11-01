@@ -1,7 +1,16 @@
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { Check, Circle, CircleSlash, RefreshCw, RotateCw, Square, TriangleAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Circle,
+  CircleSlash,
+  RefreshCw,
+  RotateCw,
+  Square,
+  TriangleAlert,
+} from "lucide-react";
 import { Suspense, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { useCan } from "~/hooks/use-can";
 import { useConsoleBuffer } from "~/hooks/use-console-buffer";
 import { useJobStream } from "~/hooks/use-job-stream";
@@ -71,7 +80,10 @@ export function JobView({ id }: { id: string }) {
 
   return (
     <>
-      <Breadcrumbs items={crumbs} />
+      <div className="flex flex-wrap items-center gap-x-3">
+        <BackButton job={job} />
+        <Breadcrumbs items={crumbs} />
+      </div>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
@@ -266,4 +278,22 @@ function ChildIcon({ status }: { status: JobStatus }) {
   const s: StepStatus = status;
   const { icon: Icon, className } = stepIcons[s];
   return <Icon className={`size-[18px] shrink-0 ${className}`} aria-hidden />;
+}
+
+/** Back to the page the job was started from, or to its app or project when the job page
+ * was opened directly. */
+function BackButton({ job }: { job: JobDetail }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const fallback = job.app ? `/apps/${job.app}` : job.project ? `/projects/${job.project.slug}` : "/activity";
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => void (location.key !== "default" ? navigate(-1) : navigate(fallback))}
+      className="-ml-3"
+    >
+      <ArrowLeft aria-hidden />
+      {strings.job.back}
+    </Button>
+  );
 }

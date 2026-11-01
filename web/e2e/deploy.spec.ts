@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signIn, watchErrors } from "./helpers";
+import { openJob, signIn, watchErrors } from "./helpers";
 
 // Runs after config.spec.ts. The failed deploy comes first so docs-site ends running.
 test.describe.configure({ mode: "serial" });
@@ -17,6 +17,7 @@ test("a repository deploy that fails shows the failed step (DEP-1, DEP-2)", asyn
   await page.getByLabel("Repository URL").fill("https://github.com/acme/docs.git");
   await page.getByLabel("Branch or tag").fill("broken-build");
   await page.getByRole("button", { name: "Deploy repository" }).click();
+  await openJob(page);
   await expect(page).toHaveURL(/\/apps\/docs-site\/deploys\/[0-9A-Z]+$/);
   await expect(page.getByRole("alert")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("log", { name: "Output" })).toContainText("Build failed");
@@ -38,6 +39,7 @@ test("deploy an image, follow its steps and see it in the history (DEP-1 to DEP-
   await page.goto("/apps/docs-site/deploy");
   await page.getByLabel("Image", { exact: true }).fill("nginx:1.28-alpine");
   await page.getByRole("button", { name: "Deploy image" }).click();
+  await openJob(page);
   await expect(page.getByRole("heading", { level: 1, name: "Deploy nginx:1.28-alpine" })).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "Fetch source" })).toBeVisible();
   await expect(page.getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 15_000 });

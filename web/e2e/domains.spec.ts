@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signIn, watchErrors } from "./helpers";
+import { openJob, signIn, watchErrors } from "./helpers";
 
 // Runs after config.spec.ts; leaves docs-site with an extra domain.
 test.describe.configure({ mode: "serial" });
@@ -34,7 +34,7 @@ test("enable SSL as a job and see the certificate (SSL-1, SSL-2)", async ({ page
   await expect(page.getByText("Contact email saved.")).toBeVisible();
 
   await page.getByRole("button", { name: "Enable SSL" }).click();
-  await expect(page).toHaveURL(/\/jobs\//);
+  await openJob(page);
   await expect(page.getByRole("heading", { level: 1, name: "Enable SSL for docs-site" })).toBeVisible();
   await expect(page.getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 15_000 });
 

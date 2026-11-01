@@ -10,6 +10,7 @@ import {
   useNavigate,
   useRouteError,
 } from "react-router";
+import { JobDockProvider } from "~/components/app/job-dock";
 import { ServerProblems } from "~/components/app/server-status";
 import { Shell } from "~/components/app/shell";
 import { EmptyState } from "~/components/app/states";
@@ -64,10 +65,12 @@ export default function AppLayout() {
   const { connected } = useServerEvents();
 
   return (
-    <Shell me={me}>
-      <ServerProblems eventsConnected={connected} />
-      <Outlet />
-    </Shell>
+    <JobDockProvider>
+      <Shell me={me}>
+        <ServerProblems eventsConnected={connected} />
+        <Outlet />
+      </Shell>
+    </JobDockProvider>
   );
 }
 

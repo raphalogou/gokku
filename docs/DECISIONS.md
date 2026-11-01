@@ -279,3 +279,14 @@ One entry per decision: date, decision, reason, alternatives.
   `sudo -n dokku version` as the service user and warns, without failing, when it does not work.
 - **Decision:** `docs/caddy.md` covers Caddy on the host. Dokku's own Caddy proxy runs in a container driven by
   app labels and cannot reach Gokku on the host's loopback; that setup waits for the SSH runner.
+
+## 2026-11-01: Job dock
+
+- **Decision (JOB-3, user's choice):** starting a job no longer leaves the page. The job shows in a dock in the
+  bottom-right corner (above the tab bar on phones) that survives navigation: status, current step, duration
+  and, for the newest job, the last three output lines. Each job links to its full page (`/jobs/:id`, or the
+  deploy output page for deploys) and can be dismissed once finished; the dock minimizes to a pill and steps
+  aside on job pages. It keeps up to five jobs, remembered for the browser tab only. When a job ends, every
+  non-job query is refreshed. Destroying or renaming an app, destroying a service and deleting a project still
+  go to the list, since the page they were started from is gone. The full job page gets a Back button: to the
+  previous page, else to the job's app or project. The "… started" toasts are gone, since the dock shows the same.

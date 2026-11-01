@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Lock, Plus, RefreshCw, ShieldOff, Trash2 } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { Card, CardBody, CardHeader } from "~/components/app/card";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
+import { useJobDock } from "~/components/app/job-dock";
 import { Skeleton } from "~/components/app/states";
 import { Button } from "~/components/ui/button";
 import { Field } from "~/components/ui/field";
@@ -182,14 +183,14 @@ function SSLCard({
   const t = strings.domains;
   const canWrite = useCan("app.ssl.write");
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const dock = useJobDock();
   const [email, setEmail] = useState<string | null>(null);
 
   const change = useMutation({
     mutationFn: (req: SSLRequest) => changeAppSSL(name, req),
     onSuccess: async (res, req) => {
       if ("job_id" in res) {
-        await navigate(`/jobs/${res.job_id}`);
+        dock.track(res.job_id);
         return;
       }
       qc.setQueryData(queryKeys.appSSL(name), res);

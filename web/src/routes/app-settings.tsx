@@ -4,6 +4,7 @@ import { type ReactNode, useState } from "react";
 import { useNavigate } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { Card, CardHeader } from "~/components/app/card";
+import { useJobDock } from "~/components/app/job-dock";
 import { TypedConfirmDialog } from "~/components/app/typed-confirm-dialog";
 import { Button } from "~/components/ui/button";
 import { Field } from "~/components/ui/field";
@@ -27,6 +28,7 @@ export default function AppSettings({ params }: Route.ComponentProps) {
   const canDestroy = useCan("app.destroy");
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const dock = useJobDock();
   const t = strings.appSettings;
 
   const [name, setName] = useState(app.name);
@@ -37,7 +39,10 @@ export default function AppSettings({ params }: Route.ComponentProps) {
   const rename = useMutation({
     mutationFn: () => updateApp(app.name, { name }),
     onSuccess: async (res) => {
-      if (res && "job_id" in res) await navigate(`/jobs/${res.job_id}`);
+      if (res && "job_id" in res) {
+        dock.track(res.job_id);
+        await navigate("/apps");
+      }
     },
     onError: (err) =>
       setNameError(err instanceof ApiError ? (err.fields.name ?? err.message) : errorMessage(err)),
@@ -48,7 +53,7 @@ export default function AppSettings({ params }: Route.ComponentProps) {
       await qc.invalidateQueries({ queryKey: queryKeys.app(app.name) });
       void qc.invalidateQueries({ queryKey: queryKeys.projects() });
       notify(t.moved(projects.data?.find((p) => p.slug === project)?.name ?? project));
-      if (res && "job_id" in res) await navigate(`/jobs/${res.job_id}`);
+      if (res && "job_id" in res) dock.track(res.job_id);
     },
     onError: (err) => notify(errorMessage(err), "error"),
   });
@@ -56,7 +61,8 @@ export default function AppSettings({ params }: Route.ComponentProps) {
     mutationFn: () => destroyApp(app.name, { confirm: app.name }),
     onSuccess: async ({ job_id }) => {
       setDestroyOpen(false);
-      await navigate(`/jobs/${job_id}`);
+      dock.track(job_id);
+      await navigate("/apps");
     },
   });
 

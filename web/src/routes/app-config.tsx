@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, Plus, Trash2, Undo2 } from "lucide-react";
 import { useId, useState } from "react";
-import { useNavigate } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { Card, CardHeader } from "~/components/app/card";
+import { useJobDock } from "~/components/app/job-dock";
 import { SaveBar } from "~/components/app/save-bar";
 import { Skeleton } from "~/components/app/states";
 import { ValueField } from "~/components/app/value-field";
@@ -31,7 +31,7 @@ export default function AppConfig({ params }: Route.ComponentProps) {
   const canWrite = useCan("app.config.write");
   const canReveal = useCan("app.secrets.reveal");
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const dock = useJobDock();
   const t = strings.config;
 
   // Pending edits: new values by key, keys to remove, and keys added.
@@ -72,7 +72,7 @@ export default function AppConfig({ params }: Route.ComponentProps) {
       setRevealed({});
       if (out.job_id) {
         notify(t.savedRestart);
-        await navigate(`/jobs/${out.job_id}`);
+        dock.track(out.job_id);
       } else {
         notify(t.saved);
       }

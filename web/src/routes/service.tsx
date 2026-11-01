@@ -7,6 +7,7 @@ import { Breadcrumbs } from "~/components/app/breadcrumbs";
 import { Card, CardBody, CardHeader } from "~/components/app/card";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
 import { DatastoreIcon, DatastoreType } from "~/components/app/datastore-icon";
+import { useJobDock } from "~/components/app/job-dock";
 import { EmptyState } from "~/components/app/states";
 import { StatusPill } from "~/components/app/status-pill";
 import { TypedConfirmDialog } from "~/components/app/typed-confirm-dialog";
@@ -104,15 +105,14 @@ export default function Service({ params }: Route.ComponentProps) {
   );
 }
 
-function useJobMutation<V>(fn: (v: V) => Promise<JobRef>, message: (v: V) => string) {
+function useJobMutation<V>(fn: (v: V) => Promise<JobRef>) {
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const dock = useJobDock();
   return useMutation({
     mutationFn: fn,
-    onSuccess: async ({ job_id }, v) => {
-      notify(message(v));
+    onSuccess: async ({ job_id }, _v) => {
       void qc.invalidateQueries({ queryKey: queryKeys.services() });
-      await navigate(`/jobs/${job_id}`);
+      dock.track(job_id);
     },
     onError: (err) => notify(errorMessage(err), "error"),
   });
@@ -122,10 +122,7 @@ function ServiceActions({ svc }: { svc: ServiceDetail }) {
   const { data: server } = useQuery(serverQuery());
   const [confirmStop, setConfirmStop] = useState(false);
   const t = strings.service;
-  const start = useJobMutation(
-    (action: Action) => run[action](svc.type, svc.name),
-    (action) => t.actionStarted(t[action], svc.name),
-  );
+  const start = useJobMutation((action: Action) => run[action](svc.type, svc.name));
   const unreachable = server ? !server.reachable : false;
   const disabled = unreachable || start.isPending;
   const title = unreachable ? strings.actions.unreachable : undefined;
@@ -274,14 +271,8 @@ function LinkedApps({ svc }: { svc: ServiceDetail }) {
   const t = strings.service;
   const [app, setApp] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const link = useJobMutation(
-    (name: string) => linkService(svc.type, svc.name, { app: name }),
-    (name) => t.linkStarted(name),
-  );
-  const unlink = useJobMutation(
-    (name: string) => unlinkService(svc.type, svc.name, { app: name }),
-    (name) => t.unlinkStarted(name),
-  );
+  const link = useJobMutation((name: string) => linkService(svc.type, svc.name, { app: name }));
+  const unlink = useJobMutation((name: string) => unlinkService(svc.type, svc.name, { app: name }));
   // Only apps of the service's project, or unassigned apps for an unassigned service (SVC-3).
   const linkable = (apps.data ?? []).filter(
     (a) => (a.project?.slug ?? null) === (svc.project?.slug ?? null) && !svc.links.includes(a.name),
@@ -365,13 +356,15 @@ function DangerZone({ svc }: { svc: ServiceDetail }) {
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const dock = useJobDock();
   const t = strings.service;
   const destroy = useMutation({
     mutationFn: () => destroyService(svc.type, svc.name, { confirm: svc.name }),
     onSuccess: async ({ job_id }) => {
       setOpen(false);
       void qc.invalidateQueries({ queryKey: queryKeys.services() });
-      await navigate(`/jobs/${job_id}`);
+      dock.track(job_id);
+      await navigate("/services");
     },
   });
   const linked = svc.links.length > 0;

@@ -27,3 +27,14 @@ export async function signIn(page: Page, username = admin.username, password = a
 export async function openAccountMenu(page: Page) {
   await page.getByRole("button", { name: "Account menu" }).click();
 }
+
+/** Opens the newest job of the job dock in full page, as the user would after an action. */
+export async function openJob(page: Page) {
+  await page
+    .getByRole("region", { name: "Jobs" })
+    .getByRole("listitem")
+    .first()
+    .getByRole("link", { name: /in full page$/ })
+    .click();
+  await expect(page).toHaveURL(/\/(jobs|deploys)\/[0-9A-Z]+$/);
+}

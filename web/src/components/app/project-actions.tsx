@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Hammer, Play, RotateCw, Square } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useJobDock } from "~/components/app/job-dock";
 import { useCan } from "~/hooks/use-can";
 import {
   rebuildProjectApps,
@@ -33,17 +33,16 @@ export function ProjectActions({ project }: { project: ProjectDetail }) {
   const canOperate = useCan("project.operate");
   const { data: server } = useQuery(serverQuery());
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const dock = useJobDock();
   const [confirm, setConfirm] = useState<"stop" | "rebuild" | null>(null);
   const t = strings.projectActions;
 
   const start = useMutation({
     mutationFn: (action: Action) => run[action](project.slug),
-    onSuccess: async ({ job_id }, action) => {
+    onSuccess: async ({ job_id }, _action) => {
       setConfirm(null);
-      notify(t.started(t[action]));
       void qc.invalidateQueries({ queryKey: queryKeys.apps() });
-      await navigate(`/jobs/${job_id}`);
+      dock.track(job_id);
     },
     onError: (err) => {
       setConfirm(null);

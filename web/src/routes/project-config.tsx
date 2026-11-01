@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
 import { useId, useState } from "react";
-import { useNavigate } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { Card, CardHeader } from "~/components/app/card";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
+import { useJobDock } from "~/components/app/job-dock";
 import { SaveBar } from "~/components/app/save-bar";
 import { Skeleton } from "~/components/app/states";
 import { ValueField } from "~/components/app/value-field";
@@ -32,7 +32,7 @@ export default function ProjectConfig({ params }: Route.ComponentProps) {
   const canWrite = useCan("project.env.write");
   const canReveal = useCan("app.secrets.reveal");
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const dock = useJobDock();
   const t = strings.sharedConfig;
 
   const [edits, setEdits] = useState<Record<string, string>>({});
@@ -77,8 +77,7 @@ export default function ProjectConfig({ params }: Route.ComponentProps) {
       qc.setQueryData(queryKeys.projectEnv(slug), res.env);
       discard();
       setRevealed({});
-      notify(t.started);
-      if (res.job_id) await navigate(`/jobs/${res.job_id}`);
+      if (res.job_id) dock.track(res.job_id);
     },
     onError: (err) => setError(errorMessage(err)),
   });
@@ -86,8 +85,7 @@ export default function ProjectConfig({ params }: Route.ComponentProps) {
   const reapply = useMutation({
     mutationFn: () => applyProjectEnv(slug, { restart }),
     onSuccess: async ({ job_id }) => {
-      notify(t.started);
-      await navigate(`/jobs/${job_id}`);
+      dock.track(job_id);
     },
     onError: (err) => notify(errorMessage(err), "error"),
   });

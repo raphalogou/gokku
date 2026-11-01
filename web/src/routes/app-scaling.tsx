@@ -1,15 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { Card, CardHeader } from "~/components/app/card";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
+import { useJobDock } from "~/components/app/job-dock";
 import { SaveBar } from "~/components/app/save-bar";
 import { Skeleton } from "~/components/app/states";
 import { StatusPill } from "~/components/app/status-pill";
 import { Button } from "~/components/ui/button";
 import { Stepper } from "~/components/ui/stepper";
-import { notify } from "~/components/ui/toast";
 import { useCan } from "~/hooks/use-can";
 import { putAppScale } from "~/lib/api/gen/client";
 import { errorMessage } from "~/lib/forms";
@@ -22,7 +21,7 @@ export default function AppScaling({ params }: Route.ComponentProps) {
   const name = params.name;
   const scale = useQuery(appScaleQuery(name));
   const canScale = useCan("app.scale");
-  const navigate = useNavigate();
+  const dock = useJobDock();
   const [draft, setDraft] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const t = strings.scaling;
@@ -38,8 +37,7 @@ export default function AppScaling({ params }: Route.ComponentProps) {
       }),
     onSuccess: async ({ job_id }) => {
       setDraft({});
-      notify(t.started);
-      await navigate(`/jobs/${job_id}`);
+      dock.track(job_id);
     },
     onError: (err) => setError(errorMessage(err)),
   });

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signIn, watchErrors } from "./helpers";
+import { openJob, signIn, watchErrors } from "./helpers";
 
 // Runs after manage.spec.ts and before projects.spec.ts. status-page fails every rebuild in
 // the fake runner, so it stays failed; the other apps end as they started.
@@ -10,7 +10,7 @@ test("restart every app of a project as one job (PRJ-5, JOB-5)", async ({ page }
   await signIn(page);
   await page.goto("/projects/internal-tools");
   await page.getByRole("button", { name: "Restart all" }).click();
-  await expect(page).toHaveURL(/\/jobs\/[0-9A-Z]+$/);
+  await openJob(page);
   await expect(
     page.getByRole("heading", { level: 1, name: "Restart all apps in Internal tools" }),
   ).toBeVisible();
@@ -28,6 +28,7 @@ test("a rebuild with a failure lists it and retries only the failed app (PRJ-5, 
   await page.getByRole("button", { name: "More actions for Internal tools" }).click();
   await page.getByRole("menuitem", { name: "Rebuild all" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Rebuild all" }).click();
+  await openJob(page);
   await expect(page.getByText("1 of 2 failed.")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("log", { name: "Output" })).toContainText("status-page");
 

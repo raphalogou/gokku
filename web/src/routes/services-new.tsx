@@ -3,12 +3,12 @@ import { useState } from "react";
 import { data, useNavigate, useParams, useSearchParams } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { DatastoreIcon } from "~/components/app/datastore-icon";
+import { useJobDock } from "~/components/app/job-dock";
 import { Button } from "~/components/ui/button";
 import { Dialog, DialogActions } from "~/components/ui/dialog";
 import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
-import { notify } from "~/components/ui/toast";
 import { ApiError } from "~/lib/api/fetcher";
 import { createService } from "~/lib/api/gen/client";
 import { errorMessage } from "~/lib/forms";
@@ -30,6 +30,7 @@ const nameRe = /^[A-Za-z][A-Za-z0-9_-]*$/;
  * which picks that project (SVC-2). */
 export default function NewService() {
   const navigate = useNavigate();
+  const dock = useJobDock();
   const [search] = useSearchParams();
   const { slug } = useParams();
   const qc = useQueryClient();
@@ -50,10 +51,10 @@ export default function NewService() {
   const create = useMutation({
     mutationFn: () => createService({ type: chosenType, name, project: chosenProject }),
     onSuccess: async ({ job_id }) => {
-      notify(t.started(name));
       void qc.invalidateQueries({ queryKey: queryKeys.services() });
       if (slug) void qc.invalidateQueries({ queryKey: queryKeys.project(slug) });
-      await navigate(`/jobs/${job_id}`);
+      dock.track(job_id);
+      close();
     },
     onError: (err) =>
       setErrors(

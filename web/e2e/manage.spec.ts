@@ -1,12 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
-import { signIn, watchErrors } from "./helpers";
+import { openJob, signIn, watchErrors } from "./helpers";
 
 // Runs before projects.spec.ts, so every test restores what it changes: the new app is
 // destroyed, the renamed app gets its name back and the moved app returns.
 test.describe.configure({ mode: "serial" });
 
 async function waitForJob(page: Page) {
-  await expect(page).toHaveURL(/\/jobs\//);
+  await openJob(page);
   await expect(page.getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 15_000 });
 }
 
@@ -43,13 +43,13 @@ test("rename an app and move it between projects (APP-4, APP-7)", async ({ page 
   await signIn(page);
   await page.goto("/apps/docs-site/settings");
   await page.getByLabel("App name", { exact: true }).fill("handbook");
-  await page.getByRole("button", { name: "Rename" }).click();
+  await page.getByRole("button", { name: "Rename", exact: true }).click();
   await waitForJob(page);
   await page.goto("/apps/handbook/settings");
   await expect(page.getByRole("heading", { level: 1, name: "handbook" })).toBeVisible({ timeout: 10_000 });
 
   await page.getByLabel("App name", { exact: true }).fill("docs-site");
-  await page.getByRole("button", { name: "Rename" }).click();
+  await page.getByRole("button", { name: "Rename", exact: true }).click();
   await waitForJob(page);
 
   await page.goto("/apps/staging-web/settings");

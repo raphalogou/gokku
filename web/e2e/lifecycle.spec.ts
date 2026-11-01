@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signIn, watchErrors } from "./helpers";
+import { openJob, signIn, watchErrors } from "./helpers";
 
 // Runs after account.spec.ts and before projects.spec.ts, and leaves every app as it found
 // it except status-page, whose failed rebuild keeps it failed as the mockup shows.
@@ -10,13 +10,13 @@ test("restart an app and watch the job output (APP-6, JOB-3)", async ({ page }) 
   await signIn(page);
   await page.goto("/apps/blog-api");
   await page.getByRole("button", { name: "Restart", exact: true }).click();
-  await expect(page).toHaveURL(/\/jobs\/[0-9A-Z]+$/);
+  await openJob(page);
   await expect(page.getByRole("heading", { level: 1, name: "Restart blog-api" })).toBeVisible();
   const output = page.getByRole("log", { name: "Output" });
   await expect(output).toContainText("-----> Restarting blog-api");
   await expect(page.getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(output).toContainText("=====> Application deployed:");
-  await expect(page.getByText("Finished")).toBeVisible();
+  await expect(page.getByRole("main").getByText("Finished")).toBeVisible();
   expect(errors()).toEqual([]);
 });
 
@@ -26,11 +26,13 @@ test("stop and start ask, then change the app status (APP-6, APP-2)", async ({ p
   await page.getByRole("button", { name: "Stop", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Stop docs-site?" });
   await dialog.getByRole("button", { name: "Stop", exact: true }).click();
+  await openJob(page);
   await expect(page.getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole("link", { name: "docs-site" }).click();
   await expect(page.getByText("Stopped", { exact: true }).first()).toBeVisible({ timeout: 10_000 });
   await page.getByRole("button", { name: "Start", exact: true }).click();
+  await openJob(page);
   await expect(page.getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("link", { name: "docs-site" }).click();
   await expect(page.getByText("Running", { exact: true }).first()).toBeVisible({ timeout: 10_000 });
@@ -41,6 +43,7 @@ test("a failed rebuild shows the error and fails the app (APP-2)", async ({ page
   await page.goto("/apps/status-page");
   await page.getByRole("button", { name: "Rebuild" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Rebuild" }).click();
+  await openJob(page);
   await expect(page.getByRole("alert")).toContainText("dokku ps:rebuild status-page: exit status 1", {
     timeout: 15_000,
   });
@@ -54,6 +57,7 @@ test("cancel a running job (JOB-4)", async ({ page }) => {
   await page.goto("/apps/blog-api");
   await page.getByRole("button", { name: "Rebuild" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Rebuild" }).click();
+  await openJob(page);
   await page.getByRole("button", { name: "Cancel job" }).click();
   await expect(page.getByText("Canceled", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("log", { name: "Output" })).toContainText("Canceled.");

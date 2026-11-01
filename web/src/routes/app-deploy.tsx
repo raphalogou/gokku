@@ -2,19 +2,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Rocket } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { z } from "zod";
 import { Banner } from "~/components/app/banner";
 import { Card, CardBody, CardHeader } from "~/components/app/card";
 import { CodeBlock } from "~/components/app/code-block";
 import { DataTable, TD, TH, THead, TR } from "~/components/app/data-table";
+import { useJobDock } from "~/components/app/job-dock";
 import { jobStatusKind } from "~/components/app/job-view";
 import { Skeleton } from "~/components/app/states";
 import { StatusPill } from "~/components/app/status-pill";
 import { Button } from "~/components/ui/button";
 import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import { notify } from "~/components/ui/toast";
 import { useCan } from "~/hooks/use-can";
 import { deployApp } from "~/lib/api/gen/client";
 import type { Deploy, DeployRequest } from "~/lib/api/gen/model";
@@ -77,12 +77,11 @@ export default function AppDeploy({ params }: Route.ComponentProps) {
 
 function useDeploy(app: string) {
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const dock = useJobDock();
   return async (req: DeployRequest) => {
     const { job_id } = await deployApp(app, req);
-    notify(strings.deploy.started);
     void qc.invalidateQueries({ queryKey: queryKeys.appDeploys(app) });
-    await navigate(`/apps/${app}/deploys/${job_id}`);
+    dock.track(job_id);
   };
 }
 

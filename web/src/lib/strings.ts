@@ -582,7 +582,23 @@ export const strings = {
       "Dokku builds each app again from its last source, two at a time. Protected apps are skipped.",
   },
 
+  jobDock: {
+    label: "Jobs",
+    title: (total: number, running: number) =>
+      running > 0 ? `Jobs: ${running} running` : total === 1 ? "Job finished" : `Jobs: ${total} finished`,
+    summary: (total: number, running: number) => (running > 0 ? `${running} running` : `${total} finished`),
+    expand: "Show jobs",
+    minimize: "Minimize jobs",
+    clearFinished: "Clear finished jobs",
+    close: "Close jobs",
+    open: (title: string) => `Open ${title} in full page`,
+    openShort: "Open in full page",
+    dismiss: (title: string) => `Dismiss ${title}`,
+    starting: "Starting…",
+  },
+
   job: {
+    back: "Back",
     steps: "Steps",
     output: "Output",
     cancel: "Cancel job",

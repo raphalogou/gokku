@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Banner } from "~/components/app/banner";
 import { Card, CardBody, CardHeader } from "~/components/app/card";
+import { useJobDock } from "~/components/app/job-dock";
 import { TypedConfirmDialog } from "~/components/app/typed-confirm-dialog";
 import { Button } from "~/components/ui/button";
 import { Field } from "~/components/ui/field";
@@ -24,6 +25,7 @@ export default function ProjectSettings({ params }: Route.ComponentProps) {
   const canDelete = useCan("project.delete");
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const dock = useJobDock();
   const t = strings.projectSettings;
   const [name, setName] = useState(p.name);
   const [description, setDescription] = useState(p.description);
@@ -47,7 +49,8 @@ export default function ProjectSettings({ params }: Route.ComponentProps) {
       qc.removeQueries({ queryKey: queryKeys.project(p.slug) });
       void qc.invalidateQueries({ queryKey: queryKeys.projects() });
       notify(t.deleted(p.name));
-      await navigate(res && "job_id" in res ? `/jobs/${res.job_id}` : "/projects");
+      if (res && "job_id" in res) dock.track(res.job_id);
+      await navigate("/projects");
     },
   });
   const dirty = name !== p.name || description !== p.description;
