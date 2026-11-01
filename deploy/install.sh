@@ -25,10 +25,12 @@ DATA_DIR=/var/lib/gokku
 USER_NAME=gokku
 
 say() { printf '\033[1m-----> %s\033[0m\n' "$*"; }
+
 fail() {
 	printf 'gokku install: %s\n' "$*" >&2
 	exit 1
 }
+
 need() { command -v "$1" >/dev/null 2>&1 || fail "$1 is required but was not found."; }
 
 [ "$(id -u)" -eq 0 ] || fail "run as root, for example: curl -fsSL <url> | sudo sh"
@@ -63,6 +65,7 @@ else
 	else
 		BASE="https://github.com/$REPO/releases/download/$VERSION"
 	fi
+
 	if command -v curl >/dev/null 2>&1; then
 		fetch() { curl -fsSL --retry 3 -o "$2" "$1"; }
 	elif command -v wget >/dev/null 2>&1; then
@@ -70,6 +73,7 @@ else
 	else
 		fail "curl or wget is required to download Gokku."
 	fi
+
 	ASSET="gokku_linux_$ARCH"
 	say "Downloading $ASSET ($VERSION)"
 	fetch "$BASE/$ASSET" "$TMP/$ASSET" || fail "download failed: $BASE/$ASSET"
@@ -78,6 +82,7 @@ else
 		fail "the checksum of $ASSET does not match checksums.txt; nothing was installed."
 	mv "$TMP/$ASSET" "$TMP/gokku"
 fi
+
 chmod 0755 "$TMP/gokku"
 NEW_VERSION="$("$TMP/gokku" version)" || fail "the binary does not run on this system."
 
@@ -147,6 +152,7 @@ RestartSec=2
 [Install]
 WantedBy=multi-user.target
 EOF
+
 install -m 0644 -o root -g root "$TMP/gokku.service" "$UNIT"
 systemctl daemon-reload
 
