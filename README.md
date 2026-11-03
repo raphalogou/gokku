@@ -35,8 +35,9 @@ screens say so instead of failing.
 On the Dokku server, as root:
 
 ```
-curl -fsSL https://github.com/[OWNER]/gokku/releases/latest/download/install.sh | sudo GOKKU_REPO=[OWNER]/gokku sh
+curl -fsSL https://github.com/raphalogou/gokku/releases/latest/download/install.sh | sudo GOKKU_REPO=[OWNER]/gokku sh
 ```
+You can replace `[OWNER]` with your Github username if you have a custom forked version.
 
 Gokku is not a Dokku app. It runs next to Dokku as a systemd service and needs the host's `dokku` command.
 
