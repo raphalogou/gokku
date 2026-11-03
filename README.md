@@ -4,7 +4,8 @@ A web GUI for [Dokku](https://dokku.com). Gokku (GUI + Dokku) is one Go binary t
 serves an embedded web app, and drives the `dokku` command for you. Manage apps, config, domains, SSL, logs,
 deploys and datastores from a browser, and group related apps and services into projects.
 
-> Status: MVP feature complete (milestones M0 to M6 in `SPEC.md`). Not yet released.
+> Status: first release, v0.1.0. The MVP is feature complete (milestones M0 to M6 in `SPEC.md`). It has been
+> tested with a stand-in `dokku` binary, not yet on a server with real Dokku.
 
 ## Features (MVP)
 
@@ -35,9 +36,10 @@ screens say so instead of failing.
 On the Dokku server, as root:
 
 ```
-curl -fsSL https://github.com/raphalogou/gokku/releases/latest/download/install.sh | sudo GOKKU_REPO=[OWNER]/gokku sh
+curl -fsSL https://github.com/raphalogou/gokku/releases/latest/download/install.sh | sudo sh
 ```
-You can replace `[OWNER]` with your Github username if you have a custom forked version.
+
+To install from a fork, download its `install.sh` and pass `GOKKU_REPO=owner/gokku` to `sudo` before `sh`.
 
 Gokku is not a Dokku app. It runs next to Dokku as a systemd service and needs the host's `dokku` command.
 
@@ -160,4 +162,4 @@ Base UI, Tailwind, TypeScript.
 
 ## License
 
-[LICENSE TO BE CHOSEN]
+[MIT](LICENSE)

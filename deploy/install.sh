@@ -1,11 +1,12 @@
 #!/bin/sh
 # Install or upgrade Gokku on a Dokku server (DESIGN.md, section 8). Run as root:
 #
-#   curl -fsSL https://github.com/<owner>/gokku/releases/latest/download/install.sh | sudo sh
+#   curl -fsSL https://github.com/raphalogou/gokku/releases/latest/download/install.sh | sudo sh
 #
 # Environment:
 #   GOKKU_VERSION   release tag to install, such as v1.2.0 (default: the latest release)
-#   GOKKU_REPO      GitHub repository to download from, owner/name (default below)
+#   GOKKU_REPO      GitHub repository to download from, owner/name, for a fork
+#                   (default: raphalogou/gokku)
 #   GOKKU_DOWNLOAD_URL  base URL holding gokku_linux_<arch> and checksums.txt, for a mirror
 #                   (default: the GitHub release of GOKKU_VERSION)
 #   GOKKU_BINARY    install this local binary instead of downloading one
@@ -14,7 +15,7 @@
 # and keeps /etc/gokku/gokku.env and the data in /var/lib/gokku. Migrations run on start.
 set -eu
 
-REPO="${GOKKU_REPO:-}" # TODO: set the default to the published repository, owner/name
+REPO="${GOKKU_REPO:-raphalogou/gokku}"
 VERSION="${GOKKU_VERSION:-latest}"
 BIN=/usr/local/bin/gokku
 UNIT=/etc/systemd/system/gokku.service
@@ -58,8 +59,6 @@ if [ -n "${GOKKU_BINARY:-}" ]; then
 else
 	if [ -n "${GOKKU_DOWNLOAD_URL:-}" ]; then
 		BASE="${GOKKU_DOWNLOAD_URL%/}"
-	elif [ -z "$REPO" ]; then
-		fail "set GOKKU_REPO=owner/name, GOKKU_DOWNLOAD_URL, or GOKKU_BINARY to a local binary."
 	elif [ "$VERSION" = latest ]; then
 		BASE="https://github.com/$REPO/releases/latest/download"
 	else

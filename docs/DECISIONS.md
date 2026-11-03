@@ -290,3 +290,10 @@ One entry per decision: date, decision, reason, alternatives.
   non-job query is refreshed. Destroying or renaming an app, destroying a service and deleting a project still
   go to the list, since the page they were started from is gone. The full job page gets a Back button: to the
   previous page, else to the job's app or project. The "… started" toasts are gone, since the dock shows the same.
+
+## 2026-11-03: First release
+
+- **Decision:** the project is MIT licensed, like Dokku. The first release is `v0.1.0`, published from
+  `raphalogou/gokku`, which is now the installer's default repository; `GOKKU_REPO` remains for forks. This
+  replaces the "no default yet" note in "Packaging". A `0.x` version because Gokku has not yet run against a
+  real Dokku server.
