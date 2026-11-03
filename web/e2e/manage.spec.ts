@@ -5,8 +5,8 @@ import { openJob, signIn, watchErrors } from "./helpers";
 // destroyed, the renamed app gets its name back and the moved app returns.
 test.describe.configure({ mode: "serial" });
 
-async function waitForJob(page: Page) {
-  await openJob(page);
+async function waitForJob(page: Page, title: string) {
+  await openJob(page, title);
   await expect(page.getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 15_000 });
 }
 
@@ -33,7 +33,7 @@ test("create an app in a project, then destroy it (APP-3, APP-5)", async ({ page
   const confirm = page.getByRole("dialog", { name: "Destroy landing?" });
   await confirm.getByLabel("Type landing to confirm").fill("landing");
   await confirm.getByRole("button", { name: "Destroy app" }).click();
-  await waitForJob(page);
+  await waitForJob(page, "Destroy landing");
   await page.goto("/apps");
   await expect(page.getByText("6 apps on dokku-01")).toBeVisible({ timeout: 10_000 });
   expect(errors()).toEqual([]);
@@ -44,13 +44,13 @@ test("rename an app and move it between projects (APP-4, APP-7)", async ({ page 
   await page.goto("/apps/docs-site/settings");
   await page.getByLabel("App name", { exact: true }).fill("handbook");
   await page.getByRole("button", { name: "Rename", exact: true }).click();
-  await waitForJob(page);
+  await waitForJob(page, "Rename docs-site to handbook");
   await page.goto("/apps/handbook/settings");
   await expect(page.getByRole("heading", { level: 1, name: "handbook" })).toBeVisible({ timeout: 10_000 });
 
   await page.getByLabel("App name", { exact: true }).fill("docs-site");
   await page.getByRole("button", { name: "Rename", exact: true }).click();
-  await waitForJob(page);
+  await waitForJob(page, "Rename handbook to docs-site");
 
   await page.goto("/apps/staging-web/settings");
   await page.getByLabel("Project").click();
@@ -116,6 +116,6 @@ test("create an app from its project, which is chosen already (APP-3)", async ({
   const confirm = page.getByRole("dialog", { name: "Destroy shop-admin?" });
   await confirm.getByLabel("Type shop-admin to confirm").fill("shop-admin");
   await confirm.getByRole("button", { name: "Destroy app" }).click();
-  await waitForJob(page);
+  await waitForJob(page, "Destroy shop-admin");
   expect(errors()).toEqual([]);
 });

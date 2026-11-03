@@ -44,3 +44,13 @@ test("on a phone the dock sits above the tab bar", async ({ page }) => {
   expect(box && box.x >= 0 && box.x + box.width <= 390).toBe(true);
   await dock.getByRole("button", { name: "Dismiss Restart blog-api" }).click();
 });
+
+test("a project action finishes in the dock without opening it (JOB-3, JOB-5)", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/projects/internal-tools");
+  await page.getByRole("button", { name: "Restart all" }).click();
+  const dock = page.getByRole("region", { name: "Jobs" });
+  await expect(dock.getByText("Restart all apps in Internal tools")).toBeVisible();
+  await expect(dock.getByText(/^Succeeded/)).toBeVisible({ timeout: 20_000 });
+  await expect(page).toHaveURL(/\/projects\/internal-tools$/);
+});

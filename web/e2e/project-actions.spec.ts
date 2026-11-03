@@ -10,7 +10,7 @@ test("restart every app of a project as one job (PRJ-5, JOB-5)", async ({ page }
   await signIn(page);
   await page.goto("/projects/internal-tools");
   await page.getByRole("button", { name: "Restart all" }).click();
-  await openJob(page);
+  await openJob(page, "Restart all apps in Internal tools");
   await expect(
     page.getByRole("heading", { level: 1, name: "Restart all apps in Internal tools" }),
   ).toBeVisible();
@@ -28,7 +28,7 @@ test("a rebuild with a failure lists it and retries only the failed app (PRJ-5, 
   await page.getByRole("button", { name: "More actions for Internal tools" }).click();
   await page.getByRole("menuitem", { name: "Rebuild all" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Rebuild all" }).click();
-  await openJob(page);
+  await openJob(page, "Rebuild all apps in Internal tools");
   await expect(page.getByText("1 of 2 failed.")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("log", { name: "Output" })).toContainText("status-page");
 

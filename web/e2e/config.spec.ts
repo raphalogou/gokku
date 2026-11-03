@@ -60,7 +60,7 @@ test("edit as .env, then save with a restart (CFG-4, CFG-5)", async ({ page }) =
   await expect(page.getByText("2 unsaved changes")).toBeVisible();
   await page.getByLabel("Restart app after saving").check();
   await page.getByRole("button", { name: "Save changes" }).click();
-  await openJob(page);
+  await openJob(page, "Restart blog-api");
   await expect(page.getByRole("heading", { level: 1, name: "Restart blog-api" })).toBeVisible();
   await expect(page.getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 15_000 });
 });
@@ -80,7 +80,7 @@ test("shared variables apply to the project's apps (SHV-1 to SHV-7)", async ({ p
   await page.getByRole("button", { name: "Remove DATABASE_URL" }).click();
   await page.getByRole("button", { name: "Save and apply" }).click();
 
-  await openJob(page);
+  await openJob(page, "Apply shared variables to Blog platform");
   await expect(
     page.getByRole("heading", { level: 1, name: "Apply shared variables to Blog platform" }),
   ).toBeVisible();

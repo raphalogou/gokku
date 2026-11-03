@@ -50,7 +50,12 @@ test("theme choice survives a reload and a new browser (USR-4)", async ({ page, 
   await signIn(page);
   await openAccountMenu(page);
   const dark = page.getByRole("button", { name: "Dark" });
+  // Wait for the save: the reload below must not overtake it.
+  const saved = page.waitForResponse(
+    (r) => r.url().endsWith("/api/v1/me") && r.request().method() === "PATCH",
+  );
   await dark.click();
+  await saved;
   await expect(dark).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 

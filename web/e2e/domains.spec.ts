@@ -34,7 +34,7 @@ test("enable SSL as a job and see the certificate (SSL-1, SSL-2)", async ({ page
   await expect(page.getByText("Contact email saved.")).toBeVisible();
 
   await page.getByRole("button", { name: "Enable SSL" }).click();
-  await openJob(page);
+  await openJob(page, "Enable SSL for docs-site");
   await expect(page.getByRole("heading", { level: 1, name: "Enable SSL for docs-site" })).toBeVisible();
   await expect(page.getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 15_000 });
 

@@ -28,13 +28,15 @@ export async function openAccountMenu(page: Page) {
   await page.getByRole("button", { name: "Account menu" }).click();
 }
 
-/** Opens the newest job of the job dock in full page, as the user would after an action. */
-export async function openJob(page: Page) {
+/**
+ * Opens a job of the job dock in full page, as the user would after an action. It names the
+ * job because the dock also lists earlier ones, and the new job appears only once the server
+ * has answered.
+ */
+export async function openJob(page: Page, title: string) {
   await page
     .getByRole("region", { name: "Jobs" })
-    .getByRole("listitem")
-    .first()
-    .getByRole("link", { name: /in full page$/ })
+    .getByRole("link", { name: `Open ${title} in full page`, exact: true })
     .click();
   await expect(page).toHaveURL(/\/(jobs|deploys)\/[0-9A-Z]+$/);
 }
